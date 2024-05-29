@@ -23,10 +23,10 @@ public class DDAdvertiserScript extends Script {
             try {
 
                 //Check if player is within range of the POHWorldPoint
-                if(Rs2Player.getWorldLocation().distanceTo2D(POHWorldPoint) > 2){
+                if(Rs2Player.getWorldLocation().distanceTo2D(POHWorldPoint) > 0){
                     //Not inside the area for advertising, Walk to advertising place
                     if(!Rs2Player.isWalking()) {
-                        Rs2Walker.walkTo(POHWorldPoint, 2);
+                        Rs2Walker.walkTo(POHWorldPoint, 0);
                     }else{
                         Rs2Player.toggleRunEnergy(true);
                     }
