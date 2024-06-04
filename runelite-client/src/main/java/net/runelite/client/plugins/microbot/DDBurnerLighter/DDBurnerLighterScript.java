@@ -24,9 +24,13 @@ enum states{
     state_walkToHousePortal,
     state_atPortal,
     state_atHouse,
+    state_atPhails
 }
 public class DDBurnerLighterScript extends Script {
     public static double version = 1.0;
+    public long incenseBurnDurationTick;
+    public long scriptStartTimestamp;
+    public long lightStateTimestamp;
     //ITEM IDS
     public static int notedMarentillId = 252;
     public static int marentillId = 251;
@@ -34,6 +38,10 @@ public class DDBurnerLighterScript extends Script {
     public static int coinId = 995;
     public static int POHId = 15478;
     public static int POHExitId = 4525;
+    public static int burnerId = 13213;
+    public static int unlitBurnerId = 13212;
+    public static int alterId = 40879;
+
     //WORLD POINTS
     WorldPoint POHWorldPoint = new WorldPoint(2955 , 3224, 0);
     WorldPoint PhialsWorldPoint = new WorldPoint(2950 , 3214, 0);
@@ -43,6 +51,7 @@ public class DDBurnerLighterScript extends Script {
     states currentState = states.state_init;
     public boolean run(DDBurnerLighterConfig config) {
         Microbot.enableAutoRunOn = false;
+        incenseBurnDurationTick = 200 + Microbot.getClient().getRealSkillLevel(Skill.FIREMAKING);
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 if (!Microbot.isLoggedIn()) return;
@@ -59,23 +68,25 @@ public class DDBurnerLighterScript extends Script {
                             Microbot.hopToWorld(330);
                             sleep(10000); //Let it sleep for 10 sec
                         }
+                        //Change the minimap zoom and make top down camera
+                        Microbot.getClient().setMinimapZoom(2.0);
+                        Microbot.getClient().setScalingFactor(272);
+                        Rs2Camera.setPitch(100);
+                        //Open up inventory
+                        if(!Rs2Inventory.isOpen())
+                            Rs2Inventory.open();
+
                         //check to make sure we have all item and choose next state
                         if (!Rs2Inventory.contains(notedMarentillId) || !Rs2Inventory.contains("Coins") || !Rs2Inventory.contains(tinderboxId)) {
                             System.out.println("Inventory Missing Item");
                         }else{
                             //All guest houses are plane 1
-                            if(Rs2Player.getWorldLocation().getPlane() == 0){
+                            if(!isInHouse()){
                                 currentState = states.state_walkToHousePortal;
                             }else{
                                 currentState = states.state_atHouse;
                             }
                         }
-                        //Change the minimap zoom and make top down camera
-                        Microbot.getClient().setMinimapZoom(2.0);
-                        Rs2Camera.setPitch(100);
-                        //Open up inventory
-                        if(!Rs2Inventory.isOpen())
-                            Rs2Inventory.open();
                         break;
                     case state_walkToHousePortal:
                         //Walk to the portal if we are not currently at the portal
@@ -107,18 +118,20 @@ public class DDBurnerLighterScript extends Script {
                             //We dont have enough herbs, go unnote
                             if(!Rs2Npc.hasLineOfSight(Rs2Npc.getNpc("Phials"))){
                                 Rs2Walker.walkTo(PhialsWorldPoint, 0);
-                            }else{
-                                unoteMarentill();
-                                if(!Rs2GameObject.exists(POHId)) {
-                                    Rs2Walker.walkTo(POHWorldPoint);
-                                }
                             }
+                            currentState = states.state_atPhails;
                         }
+                        break;
+                    case state_atPhails:
+                        unoteMarentill();
+                        if(!Rs2GameObject.exists(POHId)) {
+                            Rs2Walker.walkTo(POHWorldPoint);
+                        }
+                        currentState = states.state_atPortal;
                         break;
 
                     case state_atHouse:
-                        //All guest houses are plane 2
-                        if(Rs2Player.getWorldLocation().getPlane() == 0){
+                        if(!isInHouse()){
                             currentState = states.state_walkToHousePortal;
                             break;
                         }
@@ -168,5 +181,9 @@ public class DDBurnerLighterScript extends Script {
         Rs2Camera.turnTo(Rs2GameObject.findObjectById(POHExitId));
         Rs2GameObject.interact(POHExitId, "Enter");
         sleepUntil(()->Rs2Player.getWorldLocation().getPlane() == 0);
+    }
+    private boolean isInHouse(){
+        return Rs2GameObject.exists(POHExitId) || Rs2GameObject.exists(alterId)
+                || Rs2GameObject.exists(burnerId) || Rs2GameObject.exists(unlitBurnerId);
     }
 }
