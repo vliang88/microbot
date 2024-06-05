@@ -83,10 +83,8 @@ public class DDBurnerLighterScript extends Script {
                         //Change the minimap zoom and make top down camera
                         Microbot.getClient().setMinimapZoom(2.0);
                         Microbot.getClient().setScalingFactor(272);
-                        if(Microbot.getClient().getScale() > 300) {
-                            Microbot.getMouse().scrollDown(new Point(Rs2Player.getLocalLocation().getX(), Rs2Player.getLocalLocation().getY()));
-                        }
-                            Rs2Camera.setPitch(100);
+                        Microbot.getMouse().scrollDown(new Point(Rs2Player.getLocalLocation().getX(), Rs2Player.getLocalLocation().getY()));
+                        Rs2Camera.setPitch(100);
                         //Open up inventory
                         if (!Rs2Inventory.isOpen())
                             Rs2Inventory.open();
@@ -212,7 +210,7 @@ public class DDBurnerLighterScript extends Script {
         Rs2Widget.clickWidget("Exchange All");
     }
 
-    private void enterPortal(DDBurnerLighterConfig config, int hostNumber) {
+    private boolean enterPortal(DDBurnerLighterConfig config, int hostNumber) {
         Rs2GameObject.interact(POHId, "Friend's House");
         sleep(250, 1000);
         sleepUntil(() -> Rs2Widget.hasWidget("Enter Name"));
@@ -223,20 +221,22 @@ public class DDBurnerLighterScript extends Script {
             Rs2Keyboard.typeString(config.message2());
         }
         Rs2Keyboard.enter();
+        //Check if the player is online from the chatbox
         sleepUntil(() -> Rs2Player.getWorldLocation().getPlane() != 0);
         //Choose a new random number for this house
         randNum = (int)(Math.random()*10) *2;
+        return true;
     }
 
     private void exitHousePortal() {
         comment = "Leaving house";
         Rs2Camera.turnTo(Rs2GameObject.findObjectById(POHExitId));
-        Rs2GameObject.interact(POHExitId, "Enter");
+        Rs2GameObject.interact("Portal", "Enter");
         sleepUntil(() -> Rs2Player.getWorldLocation().getPlane() == 0);
     }
 
     private boolean isInHouse() {
-        return Rs2GameObject.exists(POHExitId) || Rs2GameObject.exists(alterId)
+        return Rs2GameObject.exists(POHExitId)
                 || Rs2GameObject.exists(burnerId) || Rs2GameObject.exists(unlitBurnerId);
     }
 
@@ -260,6 +260,10 @@ public class DDBurnerLighterScript extends Script {
             sleepUntil(() -> !Rs2Player.isWalking() && !Rs2Player.isAnimating());
         }
     }
+    private void walkToAltar(){
+        comment = "Walking to Altar";
+        Rs2Walker.walkFastLocal(Rs2GameObject.get("Altar").getLocalLocation());
+    }
     private void runAntiban(){
         int Min = 1;
         int Max = 5;
@@ -267,19 +271,28 @@ public class DDBurnerLighterScript extends Script {
         System.out.println("Antiban: " + randNum);
         switch (randNum){
             case 1:
-                Rs2GameObject.interact("Rejuvenation", "Drink");
+                GameObject poolOfRejuvenation = Rs2GameObject.getGameObjects()
+                    .stream()
+                    .filter(x -> x.getId() == Rs2GameObject.get("Rejuvenation").getId())
+                    .sorted(Comparator.comparingInt(x -> Microbot.getClient().getLocalPlayer().getWorldLocation().distanceTo(x.getWorldLocation())))
+                    .filter(Rs2GameObject::hasLineOfSight)
+                    .findFirst()
+                    .orElse(null);
+                if (poolOfRejuvenation != null){
+                    Rs2GameObject.interact(poolOfRejuvenation);
+                }
                 break;
             case 2:
                 Rs2GameObject.interact("Altar", "Pray");
                 break;
             case 3:
-                Rs2Walker.walkFastCanvas(Rs2GameObject.getGameObjects(alterId).stream().findFirst().orElseThrow().getWorldLocation());
+                Rs2Walker.walkFastCanvas(Rs2GameObject.get("Altar").getWorldLocation());
                 break;
             case 4:
                 Microbot.getMouse().move(Rs2Player.getWorldLocation().getX() + 3,Rs2Player.getWorldLocation().getY()+ 3);
                 break;
             case 5:
-                Rs2GameObject.interact(POHExitId,"Enter");
+                Rs2GameObject.interact("Portal","Enter");
             default:
                 break;
         }
