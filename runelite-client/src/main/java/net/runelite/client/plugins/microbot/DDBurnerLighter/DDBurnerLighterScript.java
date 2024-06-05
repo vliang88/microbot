@@ -250,13 +250,13 @@ public class DDBurnerLighterScript extends Script {
 
         if (burners.get(0) != null) {
             Rs2GameObject.interact(burners.get(0), "Light");
-            sleep(3000);
+            sleep(2500, 3000);
             sleepUntil(() -> !Rs2Player.isWalking() && !Rs2Player.isAnimating());
         }
 
         if (burners.get(1) != null) {
             Rs2GameObject.interact(burners.get(1), "Light");
-            sleep(3000);
+            sleep(2500, 3000);
             sleepUntil(() -> !Rs2Player.isWalking() && !Rs2Player.isAnimating());
         }
     }
