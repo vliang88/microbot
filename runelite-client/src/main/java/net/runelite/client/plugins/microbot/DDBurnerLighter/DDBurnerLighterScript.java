@@ -31,11 +31,13 @@ public class DDBurnerLighterScript extends Script {
     public static double version = 1.0;
     public static String host1;
     public static String host2;
+    public static String comment;
 
     public static int incenseBurnDurationTick;
     public int randNum;
     public static long[] lightStartTimestamp = new long[]{0,0};
     public int hostNumber = 0;
+    String hostName;
     //ITEM IDS
     public static int notedMarentillId = 252;
     public static int marentillId = 251;
@@ -71,10 +73,12 @@ public class DDBurnerLighterScript extends Script {
                 }
                 switch (currentState) {
                     case state_init:
+                        comment = "Initializing Script";
                         //make sure we are on world 330
                         if (Microbot.getClient().getWorld() != 330) {
-                            Microbot.hopToWorld(330);
-                            sleep(10000); //Let it sleep for 10 sec
+                            Microbot.showMessage("Player not in world 330");
+                            //Microbot.hopToWorld(330);
+                            //sleep(10000); //Let it sleep for 10 sec
                         }
                         //Change the minimap zoom and make top down camera
                         Microbot.getClient().setMinimapZoom(2.0);
@@ -110,6 +114,7 @@ public class DDBurnerLighterScript extends Script {
                             //Not inside the area for advertising, Walk to advertising place
                             if (!Rs2Player.isWalking()) {
                                 Rs2Walker.walkTo(POHWorldPoint, 0);
+                                comment = "Walking to POH";
                             } else {
                                 if (Microbot.getClient().getEnergy() > 20) {
                                     Rs2Player.toggleRunEnergy(true);
@@ -125,28 +130,31 @@ public class DDBurnerLighterScript extends Script {
                             currentState = states.state_walkToHousePortal;
                             break;
                         }
+                        comment = "Currently at portal";
                         //Check if we have more than 2 maretill in our inventory
                         if (Rs2Inventory.count(marentillId) >= 2) {
                             //We have enough, lets go into a portal
                             //Check which host we have to go to
                             if(lightStartTimestamp[0] > lightStartTimestamp[1]){
                                 hostNumber = 1;
+                                hostName = config.message2();
                             }else{
                                 hostNumber = 0;
+                                hostName = config.message1();
                             }
+                            comment = "Entering " + hostName + "'s House";
                             enterPortal(config, hostNumber);
                             currentState = states.state_atHouse;
                         } else {
                             //We dont have enough herbs, go unnote
-                            //if (!Rs2Npc.hasLineOfSight(Rs2Npc.getNpc("Phials"))) {
-                                Rs2Walker.walkTo(PhialsWorldPoint, 0);
-                            //}
+                            Rs2Walker.walkTo(PhialsWorldPoint, 0);
                             currentState = states.state_atPhails;
                         }
                         break;
                     case state_atPhails:
                         unoteMarentill();
                         if (!Rs2GameObject.exists(POHId)) {
+                            comment = "Walking to POH";
                             Rs2Walker.walkFastCanvas(POHWorldPoint);
                         }
                         currentState = states.state_atPortal;
@@ -167,6 +175,7 @@ public class DDBurnerLighterScript extends Script {
                                 break;
                             }
                             //Only run random antiban half the time
+                            comment = "Afking in " + hostName + "'s House";
                             if(Math.random() < 0.02){
                                 runAntiban();
                             }
@@ -193,6 +202,7 @@ public class DDBurnerLighterScript extends Script {
 
     private void unoteMarentill() {
         //Click on the noted maretill in inventory
+        comment = "Unnoting with Phails";
         Rs2Inventory.interact(notedMarentillId, "Use");
         sleep(250, 1000);
         Rs2Npc.interact(NpcID.PHIALS, "Use");
@@ -219,6 +229,7 @@ public class DDBurnerLighterScript extends Script {
     }
 
     private void exitHousePortal() {
+        comment = "Leaving house";
         Rs2Camera.turnTo(Rs2GameObject.findObjectById(POHExitId));
         Rs2GameObject.interact(POHExitId, "Enter");
         sleepUntil(() -> Rs2Player.getWorldLocation().getPlane() == 0);
@@ -230,6 +241,7 @@ public class DDBurnerLighterScript extends Script {
     }
 
     private void lightBurners() {
+        comment = "Lighting burners";
         List<GameObject> burners = Rs2GameObject.getGameObjects()
                 .stream()
                 .filter(x -> x.getId() == burnerId || x.getId() == unlitBurnerId)
@@ -238,19 +250,19 @@ public class DDBurnerLighterScript extends Script {
 
         if (burners.get(0) != null) {
             Rs2GameObject.interact(burners.get(0), "Light");
-            sleep(2000);
+            sleep(3000);
             sleepUntil(() -> !Rs2Player.isWalking() && !Rs2Player.isAnimating());
         }
 
         if (burners.get(1) != null) {
             Rs2GameObject.interact(burners.get(1), "Light");
-            sleep(2000);
+            sleep(3000);
             sleepUntil(() -> !Rs2Player.isWalking() && !Rs2Player.isAnimating());
         }
     }
     private void runAntiban(){
         int Min = 1;
-        int Max = 2;
+        int Max = 5;
         int randNum = Min + (int)(Math.random() * ((Max - Min) + 1));
         System.out.println("Antiban: " + randNum);
         switch (randNum){
@@ -260,6 +272,14 @@ public class DDBurnerLighterScript extends Script {
             case 2:
                 Rs2GameObject.interact("Altar", "Pray");
                 break;
+            case 3:
+                Microbot.getMouse().move(Rs2Player.getWorldLocation().getX() + 3,Rs2Player.getWorldLocation().getY());
+                break;
+            case 4:
+                Microbot.getMouse().move(Rs2Player.getWorldLocation().getX() + 3,Rs2Player.getWorldLocation().getY()+ 3);
+                break;
+            case 5:
+                Rs2Keyboard.enter();
             default:
                 break;
         }

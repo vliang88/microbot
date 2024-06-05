@@ -49,7 +49,7 @@ public class DDBurnerLighterOverlay extends OverlayPanel {
                     .build());
 
             panelComponent.getChildren().add(LineComponent.builder()
-                    .left("Current State: " + DDBurnerLighterScript.currentState)
+                    .left("Current State: " + DDBurnerLighterScript.comment)
                     .build());
 
             panelComponent.getChildren().add(LineComponent.builder()
