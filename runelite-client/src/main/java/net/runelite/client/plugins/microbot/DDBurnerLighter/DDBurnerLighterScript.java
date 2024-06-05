@@ -273,13 +273,13 @@ public class DDBurnerLighterScript extends Script {
                 Rs2GameObject.interact("Altar", "Pray");
                 break;
             case 3:
-                Microbot.getMouse().move(Rs2Player.getWorldLocation().getX() + 3,Rs2Player.getWorldLocation().getY());
+                Rs2Walker.walkFastCanvas(Rs2GameObject.getGameObjects(alterId).stream().findFirst().orElseThrow().getWorldLocation());
                 break;
             case 4:
                 Microbot.getMouse().move(Rs2Player.getWorldLocation().getX() + 3,Rs2Player.getWorldLocation().getY()+ 3);
                 break;
             case 5:
-                Rs2Keyboard.enter();
+                Rs2GameObject.interact(POHExitId,"Enter");
             default:
                 break;
         }
