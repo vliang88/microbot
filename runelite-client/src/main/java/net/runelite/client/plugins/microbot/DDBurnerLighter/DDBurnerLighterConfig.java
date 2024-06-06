@@ -32,4 +32,15 @@ public interface DDBurnerLighterConfig extends Config {
             section = generalSection
     )
     default String message2() {return "bedreiging";}
+
+    @ConfigItem(
+            keyName = "Use second house",
+            name = "Use second house",
+            description = "Use second house",
+            position = 1,
+            section = generalSection
+    )
+    default boolean useSecondHost() {
+        return false;
+    }
 }
