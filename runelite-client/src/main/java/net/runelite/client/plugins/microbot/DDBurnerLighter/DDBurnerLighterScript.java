@@ -2,8 +2,8 @@ package net.runelite.client.plugins.microbot.DDBurnerLighter;
 
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.client.events.ChatInput;
-import net.runelite.client.events.ChatboxInput;
+import net.runelite.api.events.ChatMessage;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
 import net.runelite.client.plugins.microbot.globval.WidgetIndices;
@@ -17,6 +17,7 @@ import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
+import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -32,17 +33,21 @@ enum states{
     state_atPhails
 }
 public class DDBurnerLighterScript extends Script {
+
+
     //For overlay
     public static double version = 1.0;
     public static String host1;
     public static String host2;
     public static String comment;
+
+    //For making sure account not offline
     public static int userOffline = 0;
 
     public static int incenseBurnDurationTick;
     public int randNum;
     public static long[] lightStartTimestamp = new long[]{0,0};
-    public int hostNumber = 0;
+    public static int hostNumber = 0;
     String hostName;
     //ITEM IDS
     public static int notedMarentillId = 252;
@@ -72,130 +77,86 @@ public class DDBurnerLighterScript extends Script {
             try {
                 if (!Microbot.isLoggedIn()) return;
                 if (!super.run()) return;
-                //TODO:Check to make sure that the account has at least 35FM or else return
-                //Make sure we not going nuts when the player is walking
-                while (Rs2Player.isWalking()) {
-                    sleep(100);
-                }
-                switch (currentState) {
-                    case state_init:
-                        comment = "Initializing Script";
-                        //make sure we are on world 330
-                        if (Microbot.getClient().getWorld() != 330) {
-                            Microbot.showMessage("Player not in world 330");
-                            //Microbot.hopToWorld(330);
-                            //sleep(10000); //Let it sleep for 10 sec
-                        }
-                        //Change the minimap zoom and make top down camera
-                        Microbot.getClient().setMinimapZoom(2.0);
-                        Microbot.getClient().setScalingFactor(272);
+                if (!fullyInit) {
+                    comment = "Initializing Script";
+                    if (Microbot.getClient().getWorld() != 330) {
+                        Rs2Keyboard.typeString("::hop 330");
+                        Rs2Keyboard.enter();
+                        sleep(10000); //Let it sleep for 10 sec
+                    }
+                    //Change the minimap zoom and make top down camera
+                    Microbot.getClient().setMinimapZoom(2.0);
+                    Microbot.getClient().setScalingFactor(272);
+                    //while(Microbot.getClient().get >= 300)
                         Microbot.getMouse().scrollDown(new Point(Rs2Player.getLocalLocation().getX(), Rs2Player.getLocalLocation().getY()));
-                        Rs2Camera.setPitch(100);
-                        //Open up inventory
-                        if (!Rs2Inventory.isOpen())
-                            Rs2Inventory.open();
+                    Rs2Camera.setPitch(100);
+                    //Open up inventory
+                    if (!Rs2Inventory.isOpen())
+                        Rs2Inventory.open();
 
-                        //check to make sure we have all item and choose next state
-                        if (!Rs2Inventory.contains(notedMarentillId) || !Rs2Inventory.contains("Coins") || !Rs2Inventory.contains(tinderboxId)) {
-                            Microbot.showMessage("Inventory Missing Item");
-                        } else {
-                            //All guest houses are plane 1
-                            if (!isInHouse()) {
-                                currentState = states.state_walkToHousePortal;
-                            } else {
-                                currentState = states.state_atHouse;
-                            }
-                        }
-                        break;
-                    case state_walkToHousePortal:
-                        if (isInHouse()) {
-                            currentState = states.state_atHouse;
-                            break;
-                        }
-
-                        //Walk to the portal if we are not currently at the portal
-                        if (Rs2Player.getWorldLocation().distanceTo2D(POHWorldPoint) > POHWorldPointSize) {
-                            //Not inside the area for advertising, Walk to advertising place
-                            if (!Rs2Player.isWalking()) {
-                                Rs2Walker.walkTo(POHWorldPoint, 0);
-                                comment = "Walking to POH";
-                            } else {
-                                if (Microbot.getClient().getEnergy() > 20) {
-                                    Rs2Player.toggleRunEnergy(true);
+                    //check to make sure we have all item and choose next state
+                    if (!Rs2Inventory.contains(notedMarentillId) || !Rs2Inventory.contains("Coins") || !Rs2Inventory.contains(tinderboxId)) {
+                        Microbot.showMessage("Inventory Missing Item");
+                    }
+                    fullyInit = true;
+                }
+                //Always have run on!
+                if(Microbot.getClient().getEnergy() > 20){
+                    Rs2Player.toggleRunEnergy(true);
+                }
+                //This is main loop
+                if(!hasMarentill()){
+                    unoteMarentill();
+                }else{
+                    ///Check if we are in house
+                    if(isInHouse()){
+                        //check if we are using 2 host
+                        if(config.useSecondHost()){
+                            //Check if we are inside the house with lighter with lowest timer
+                            if(Microbot.getClient().getTickCount() - DDBurnerLighterScript.lightStartTimestamp[0] >
+                                    Microbot.getClient().getTickCount() - DDBurnerLighterScript.lightStartTimestamp[1]){
+                                if(hostNumber == 0){ //We are in the right house so we can afk and run antiban
+                                    if(isTimeToLightBurner()) {
+                                        lightBurners();
+                                    }else{
+                                        runAntiban();
+                                        comment = "Afking in " + hostName + "'s House";
+                                    }
+                                }else{ //We not in the right house so we have to exit
+                                    exitHousePortal();
+                                }
+                            }else{
+                                if(hostNumber == 1){ //We are in the right house so we can afk and run antiban
+                                    if(isTimeToLightBurner()) {
+                                        lightBurners();
+                                    }else{
+                                        runAntiban();
+                                        comment = "Afking in " + hostName + "'s House";
+                                    }
+                                }else{ //We not in the right house so we have to exit
+                                    exitHousePortal();
                                 }
                             }
-                        } else {//We are currently at the portal, go to state to see if we go into house
-                            currentState = states.state_atPortal;
+                        }else{ //inside house and not using second Host. Check if its time to light
+                            if(isTimeToLightBurner()){
+                                lightBurners();
+                            }else{
+                                //Do nothing. Antiban running here
+                                runAntiban();
+                                comment = "Afking in " + hostName + "'s House";
+                            }
                         }
-                        break;
-                    case state_atPortal:
-                        //Make sure we are at the portal area in this state or we go back
-                        if (Rs2Player.getWorldLocation().distanceTo2D(POHWorldPoint) > POHWorldPointSize) {
-                            currentState = states.state_walkToHousePortal;
-                            break;
-                        }
-                        comment = "Currently at portal";
-                        //Check if we have more than 2 maretill in our inventory
-                        if (Rs2Inventory.count(marentillId) >= 2) {
-                            //We have enough, lets go into a portal
-                            //Check which host we have to go to
-                            enterPortal(config, choosenHost(config));
-                            currentState = states.state_atHouse;
-                        } else {
-                            //We dont have enough herbs, go unnote
-                            Rs2Walker.walkTo(PhialsWorldPoint, 0);
-                            currentState = states.state_atPhails;
-                        }
-                        break;
-                    case state_atPhails:
-                        unoteMarentill();
+                    }else{ //not inside house
+                        //See if we can see the portal
                         if (!Rs2GameObject.exists(POHId)) {
                             comment = "Walking to POH";
                             Rs2Walker.walkFastCanvas(POHWorldPoint);
+                        }else{
+                            //The portal is in view, figure out which house to get in
+                            enterPortal(config, choosenHost(config));
                         }
-                        currentState = states.state_atPortal;
-                        break;
-
-                    case state_atHouse:
-                        if (!isInHouse()) {
-                            currentState = states.state_walkToHousePortal;
-                            //User is most likely offline
-                            userOffline |= (1 << hostNumber);
-                            System.out.println("offline: " + userOffline);
-                            if(userOffline == 3){
-                                Microbot.pauseAllScripts = true;
-                                return;
-                            }
-                            break;
-                        }
-                        if (Rs2Inventory.count(marentillId) >= 2) {
-                            if ((lightStartTimestamp[hostNumber] == 0)
-                                    || ((Microbot.getClient().getTickCount() - lightStartTimestamp[hostNumber]) >= (incenseBurnDurationTick))) {
-                                lightStartTimestamp[hostNumber] = Microbot.getClient().getTickCount();
-                                lightBurners();
-                                if(config.useSecondHost()){
-                                    exitHousePortal();
-                                    currentState = states.state_atPortal;
-                                }else{
-                                    walkToAltar();
-                                    currentState = states.state_atHouse;
-                                }
-                                break;
-                            }
-                            //Only run random antiban half the time
-                            comment = "Afking in " + hostName + "'s House";
-                            if(Math.random() < 0.02){
-                                runAntiban();
-                            }
-                        } else {
-                            exitHousePortal();
-                            currentState = states.state_atPortal;
-                        }
-                        break;
-                    default:
-                        break;
+                    }
                 }
-                System.out.println("CurrentState: " + currentState);
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }
@@ -208,16 +169,33 @@ public class DDBurnerLighterScript extends Script {
         super.shutdown();
     }
 
+    private boolean isTimeToLightBurner(){
+        return ((lightStartTimestamp[hostNumber] == 0)
+                || ((Microbot.getClient().getTickCount() - lightStartTimestamp[hostNumber]) >= (incenseBurnDurationTick)));
+    }
+
     private void unoteMarentill() {
-        //Click on the noted maretill in inventory
-        comment = "Unnoting with Phails";
-        Rs2Inventory.interact(notedMarentillId, "Use");
-        sleep(250, 1000);
-        Rs2Npc.interact(NpcID.PHIALS, "Use");
-        sleep(250, 1000);
-        sleepUntil(() -> Rs2Widget.hasWidget("Exchange All"));
-        sleep(250, 1000);
-        Rs2Widget.clickWidget("Exchange All");
+        //is inside a house or not?
+        if(!isInHouse()){
+            if(Rs2Player.getWorldLocation().distanceTo2D(PhialsWorldPoint) > 5){
+                Rs2Walker.walkTo(PhialsWorldPoint);
+                comment = "Walking to Phails";
+            }else{
+                //Click on the noted maretill in inventory
+                comment = "Unnoting with Phails";
+                Rs2Inventory.interact(notedMarentillId, "Use");
+                sleep(250, 1000);
+                Rs2Npc.interact(NpcID.PHIALS, "Use");
+                sleep(250, 1000);
+                sleepUntil(() -> Rs2Widget.hasWidget("Exchange All"));
+                sleep(250, 1000);
+                Rs2Widget.clickWidget("Exchange All");
+            }
+        }else { //we are inside of the house so we have to gtfo first
+            Rs2GameObject.interact(POHExitId, "Enter");
+            Rs2Walker.walkTo(PhialsWorldPoint);
+            comment = "Walking to Phails";
+        }
     }
 
     private boolean enterPortal(DDBurnerLighterConfig config, int hostNumber) {
@@ -232,43 +210,39 @@ public class DDBurnerLighterScript extends Script {
             Rs2Keyboard.typeString(config.message2());
         }
         Rs2Keyboard.enter();
-        //Check if the player is online from the chatbox
-        //if(Arrays.stream(Microbot.getClient().getChatLineMap().get() == "That player is offline, or has privacy mode enabled") {
-        //    sleep(1000);
-        //}
-        sleepUntil(() -> Rs2Player.getWorldLocation().getPlane() != 0);
+        sleep(1000,2000);
+        sleepUntil(this::isInHouse,1000);
         //Choose a new random number for this house
         randNum = (int)(Math.random()*10) *2;
         return true;
     }
 
     public int choosenHost(DDBurnerLighterConfig config) {
-        if (config.useSecondHost()) { //Have 2 Host
-            if(userOffline != 0){ //1 of them is offline
-                if((userOffline & 0x1) == 0x1){
-                    hostNumber = 1;
-                    hostName = config.message2();
-                    return 1;
-                }else if((userOffline & 0x2) == 0x2){
-                    hostNumber = 0;
-                    hostName = config.message1();
-                    return 0;
-                }
-            }
-            if (lightStartTimestamp[0] > lightStartTimestamp[1]) {
+        if(userOffline == 1 || userOffline == 2) { //1 of them is offline
+            if ((userOffline & 0x1) == 0x1) {
                 hostNumber = 1;
                 hostName = config.message2();
                 return 1;
-            } else {
+            } else if ((userOffline & 0x2) == 0x2) {
                 hostNumber = 0;
                 hostName = config.message1();
                 return 0;
             }
-        } else { //Only single host
-            hostNumber = 0;
-            hostName = config.message1();
-            return 0;
+        }else if(userOffline == 3){
+            Microbot.pauseAllScripts = true;
+            return 99;
+        }else{ //both host is online. We will look which has a higher timestamp
+            if (lightStartTimestamp[0] < lightStartTimestamp[1]) { //Less than start means further away
+                hostNumber = 0;
+                hostName = config.message1();
+                return 0;
+            } else {
+                hostNumber = 1;
+                hostName = config.message2();
+                return 1;
+            }
         }
+        return 99;
     }
 
     private void exitHousePortal() {
@@ -286,6 +260,7 @@ public class DDBurnerLighterScript extends Script {
 
     private void lightBurners() {
         comment = "Lighting burners";
+        lightStartTimestamp[hostNumber] = Microbot.getClient().getTickCount();
         List<GameObject> burners = Rs2GameObject.getGameObjects()
                 .stream()
                 .filter(x -> x.getId() == burnerId || x.getId() == unlitBurnerId)
@@ -319,6 +294,8 @@ public class DDBurnerLighterScript extends Script {
     private void runAntiban(){
         int Min = 1;
         int Max = 5;
+        if(Math.random() > 0.02) return;
+        comment = "Running Antiban";
         int randNum = Min + (int)(Math.random() * ((Max - Min) + 1));
         System.out.println("Antiban: " + randNum);
         switch (randNum){
@@ -349,4 +326,21 @@ public class DDBurnerLighterScript extends Script {
                 break;
         }
     }
+
+    private boolean hasMarentill(){
+        if (Rs2Inventory.count(marentillId) >= 2){
+            return true;
+            }
+        return false;
+    }
+
+    @Subscribe
+    public void onChatMessage(ChatMessage event) {
+        if (event.getType() == ChatMessageType.ENGINE) {
+            if (event.getMessage().equalsIgnoreCase("That player is offline, or has privacy mode enabled.")) {
+                DDBurnerLighterScript.userOffline |= 1 << DDBurnerLighterScript.hostNumber;
+            }
+        }
+    }
 }
+

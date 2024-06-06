@@ -37,7 +37,7 @@ public interface DDBurnerLighterConfig extends Config {
             keyName = "Use second house",
             name = "Use second house",
             description = "Use second house",
-            position = 1,
+            position = 3,
             section = generalSection
     )
     default boolean useSecondHost() {
