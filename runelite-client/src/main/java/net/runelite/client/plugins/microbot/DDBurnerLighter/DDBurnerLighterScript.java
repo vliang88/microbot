@@ -2,6 +2,7 @@ package net.runelite.client.plugins.microbot.DDBurnerLighter;
 
 import com.google.inject.internal.util.Classes;
 import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.ChatMessageType;
@@ -117,6 +118,8 @@ public class DDBurnerLighterScript extends Script {
                             lightBurners();
                             if(config.useSecondHost()) { //Dont exit if we are only using 1 because stupid to exit
                                 exitHousePortal();
+                            }else{
+                                walkToAltar(); //We are going to just walk to alter after lighjting
                             }
                         } else {
                             runAntiban();
@@ -264,15 +267,17 @@ public class DDBurnerLighterScript extends Script {
 
     private void walkToAltar() {
         comment = "Walking to Altar";
-        WorldPoint alterWP;
         GameObject gildedAlter = Rs2GameObject.getGameObjects()
                 .stream()
-                .filter(x -> x.getId() == 13179 || x.getId() == 40878)
+                .filter(x -> x.getId() == Rs2GameObject.get("Altar").getId())
                 .sorted(Comparator.comparingInt(x -> Microbot.getClient().getLocalPlayer().getWorldLocation().distanceTo(x.getWorldLocation())))
                 .filter(Rs2GameObject::hasLineOfSight)
                 .findFirst()
                 .orElse(null);
-        Rs2GameObject.interact(gildedAlter, "Pray");
+        if(gildedAlter != null){
+            WorldPoint alterWP = new WorldPoint(gildedAlter.getWorldLocation().getX()+1, gildedAlter.getWorldLocation().getY(), gildedAlter.getWorldLocation().getPlane());
+            Rs2Walker.walkCanvas(alterWP);
+        }
     }
 
     private void runAntiban() {
