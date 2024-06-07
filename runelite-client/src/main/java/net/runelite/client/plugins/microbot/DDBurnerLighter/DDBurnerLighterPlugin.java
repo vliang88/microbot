@@ -2,7 +2,10 @@ package net.runelite.client.plugins.microbot.DDBurnerLighter;
 
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -40,6 +43,15 @@ public class DDBurnerLighterPlugin extends Plugin {
             overlayManager.add(DDBurnerLighterOverlay);
         }
         DDBurnerLighterScript.run(config);
+    }
+
+    @Subscribe
+    public void onChatMessage(ChatMessage event) {
+        if (event.getType() == ChatMessageType.ENGINE) {
+            if (event.getMessage().equalsIgnoreCase("That player is offline, or has privacy mode enabled.")) {
+                DDBurnerLighterScript.userOffline |= (1 << DDBurnerLighterScript.hostNumber);
+            }
+        }
     }
 
     protected void shutDown() {
