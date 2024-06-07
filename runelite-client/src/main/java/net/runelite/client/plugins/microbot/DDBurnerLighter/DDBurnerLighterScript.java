@@ -115,7 +115,8 @@ public class DDBurnerLighterScript extends Script {
                         //check if we are using 2 host
                         if (isTimeToLightBurner()) {
                             lightBurners();
-                            exitHousePortal();
+                            if(config.useSecondHost()) //Dont exit if we are only using 1 because stupid to exit
+                                exitHousePortal();
                         } else {
                             runAntiban();
                             comment = "Afking in " + hostName + "'s House";
