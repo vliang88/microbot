@@ -37,7 +37,7 @@ public class DDBurnerLighterOverlay extends OverlayPanel {
 
             panelComponent.setPreferredSize(new Dimension(300, 500));
             panelComponent.getChildren().add(TitleComponent.builder()
-                    .text("DDBurnerLighterScript" + DDBurnerLighterScript.version)
+                    .text("DDBurnerLighterScript " + DDBurnerLighterScript.version)
                     .color(Color.GREEN)
                     .build());
 

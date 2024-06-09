@@ -39,7 +39,7 @@ enum states{
 public class DDBurnerLighterScript extends Script {
 
     //For overlay
-    public static double version = 1.0;
+    public static double version = 2.0;
     public static String host1;
     public static String host2;
     public static String comment;
@@ -50,6 +50,7 @@ public class DDBurnerLighterScript extends Script {
     public static int incenseBurnDurationTick;
     public int randNum;
     public static long[] lightStartTimestamp = new long[]{0, 0};
+    public static WorldPoint[] alterWP = new WorldPoint[]{null, null};
     public int hostNumber = 0;
     String hostName;
     //ITEM IDS
@@ -122,7 +123,9 @@ public class DDBurnerLighterScript extends Script {
                                 walkToAltar(); //We are going to just walk to alter after lighjting
                             }
                         } else {
-                            runAntiban();
+                            //if we dont have enough time to run antiban dont run it
+                            if(((Microbot.getClient().getTickCount() - lightStartTimestamp[hostNumber]) < (incenseBurnDurationTick- 20)))
+                                runAntiban();
                             comment = "Afking in " + hostName + "'s House";
                         }
                     } else { //not inside house
@@ -234,7 +237,7 @@ public class DDBurnerLighterScript extends Script {
         comment = "Leaving house";
         userOffline = 0;//Give both host a chance in 2 host config
         Rs2Camera.turnTo(Rs2GameObject.findObjectById(POHExitId));
-        Rs2GameObject.interact("Portal", "Enter");
+        Rs2GameObject.interact(POHExitId, "Enter");
         sleepUntil(() -> Rs2Player.getWorldLocation().getPlane() == 0);
     }
 
@@ -267,23 +270,28 @@ public class DDBurnerLighterScript extends Script {
 
     private void walkToAltar() {
         comment = "Walking to Altar";
-        GameObject gildedAlter = Rs2GameObject.getGameObjects()
-                .stream()
-                .filter(x -> x.getId() == Rs2GameObject.get("Altar").getId())
-                .sorted(Comparator.comparingInt(x -> Microbot.getClient().getLocalPlayer().getWorldLocation().distanceTo(x.getWorldLocation())))
-                .filter(Rs2GameObject::hasLineOfSight)
-                .findFirst()
-                .orElse(null);
-        if(gildedAlter != null){
-            WorldPoint alterWP = new WorldPoint(gildedAlter.getWorldLocation().getX()+1, gildedAlter.getWorldLocation().getY(), gildedAlter.getWorldLocation().getPlane());
-            Rs2Walker.walkCanvas(alterWP);
+        if(alterWP[hostNumber] == null) {
+            System.out.println("Looking for AltarWP " + hostNumber);
+            GameObject gildedAlter = Rs2GameObject.getGameObjects()
+                    .stream()
+                    .filter(x -> x.getId() == Rs2GameObject.get("Altar").getId())
+                    .sorted(Comparator.comparingInt(x -> Microbot.getClient().getLocalPlayer().getWorldLocation().distanceTo(x.getWorldLocation())))
+                    .filter(Rs2GameObject::hasLineOfSight)
+                    .findFirst()
+                    .orElse(null);
+            if(gildedAlter != null) {
+                alterWP[hostNumber] = new WorldPoint(gildedAlter.getWorldLocation().getX() + 1, gildedAlter.getWorldLocation().getY(), gildedAlter.getWorldLocation().getPlane());
+                Rs2Walker.walkCanvas(alterWP[hostNumber]);
+            }
+        }else{
+            Rs2Walker.walkCanvas(alterWP[hostNumber]);
         }
     }
 
     private void runAntiban() {
         int Min = 1;
         int Max = 5;
-        if (Math.random() > 0.02) return;
+        if (Math.random() > 0.01) return;
         comment = "Running Antiban";
         int randNum = Min + (int) (Math.random() * ((Max - Min) + 1));
         System.out.println("Antiban: " + randNum);
@@ -300,17 +308,13 @@ public class DDBurnerLighterScript extends Script {
                     Rs2GameObject.interact(poolOfRejuvenation);
                 }
                 break;
-            case 2:
-                Rs2GameObject.interact("Altar", "Pray");
-                break;
             case 3:
-                Rs2Walker.walkFastCanvas(Rs2GameObject.get("Altar").getWorldLocation());
-                break;
-            case 4:
                 Microbot.getMouse().move(Rs2Player.getWorldLocation().getX() + 3, Rs2Player.getWorldLocation().getY() + 3);
                 break;
-            case 5:
+            case 4:
                 exitHousePortal();
+                //Rs2Keyboard.typeString("Open Alter at " + hostName+ "'s House!");
+                //Rs2Keyboard.enter();
             default:
                 break;
         }

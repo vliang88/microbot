@@ -8,6 +8,9 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2PrayerEnum;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
@@ -47,9 +50,13 @@ public class DDBurnerLighterPlugin extends Plugin {
 
     @Subscribe
     public void onChatMessage(ChatMessage event) {
-        if (event.getType() == ChatMessageType.ENGINE) {
+        if (event.getType() == ChatMessageType.ENGINE || event.getType() == ChatMessageType.GAMEMESSAGE) {
             if (event.getMessage().equalsIgnoreCase("That player is offline, or has privacy mode enabled.")) {
                 DDBurnerLighterScript.userOffline |= (1 << DDBurnerLighterScript.hostNumber);
+            }
+            if (event.getMessage().equalsIgnoreCase("You already have full Prayer points")) {
+                //Turn on prayer
+                Rs2Prayer.toggle(Rs2PrayerEnum.THICK_SKIN, true);
             }
         }
     }
