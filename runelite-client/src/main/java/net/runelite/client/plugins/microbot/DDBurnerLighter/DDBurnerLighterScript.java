@@ -76,7 +76,7 @@ public class DDBurnerLighterScript extends Script {
         Microbot.enableAutoRunOn = false;
         host1 = config.message1();
         host2 = config.message2();
-        incenseBurnDurationTick = 150 + Microbot.getClient().getRealSkillLevel(Skill.FIREMAKING) - randNum;
+        incenseBurnDurationTick = 100 + Microbot.getClient().getRealSkillLevel(Skill.FIREMAKING) - randNum;
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 if (!Microbot.isLoggedIn()) return;
@@ -124,8 +124,8 @@ public class DDBurnerLighterScript extends Script {
                             }
                         } else {
                             //if we dont have enough time to run antiban dont run it
-                            if(((Microbot.getClient().getTickCount() - lightStartTimestamp[hostNumber]) < (incenseBurnDurationTick- 20)))
-                                runAntiban();
+                            //if(((Microbot.getClient().getTickCount() - lightStartTimestamp[hostNumber]) < (incenseBurnDurationTick- 20)))
+                            //    runAntiban();
                             comment = "Afking in " + hostName + "'s House";
                         }
                     } else { //not inside house
