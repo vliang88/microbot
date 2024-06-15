@@ -41,6 +41,10 @@ public class DDRunedokuScript extends Script {
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             if (!super.run()) return;
             try {
+                //Make sure we have enoug money
+                if(Rs2Inventory.get("Coins").quantity < 5000){
+                    Microbot.pauseAllScripts = true;
+                }
                 if(Rs2Widget.getWidget(sudokuBoardWidgetID) == null){
                     if(Rs2Widget.hasWidget("Find out what the runes are")){
                         buyRunes();
