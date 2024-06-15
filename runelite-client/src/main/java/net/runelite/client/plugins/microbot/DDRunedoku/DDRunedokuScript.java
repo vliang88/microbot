@@ -4,34 +4,70 @@ import net.runelite.api.NPC;
 import net.runelite.api.annotations.Component;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.ComponentID;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2Item;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.math.Random;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.shop.Rs2Shop;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
+
+import static net.runelite.client.plugins.microbot.util.Global.sleepUntilOnClientThread;
 
 
 public class DDRunedokuScript extends Script {
     public static double version = 1.0;
     private int AliID = 3533;
     private int sudokuBoardWidgetID = 19136524;
-    private int waterRuneWidgetID = 555;
-    private int fireRuneWidgetID = 554;
+    public boolean readyToClick;
+
+    public int[][] originalSudokuBoard = new int[9][9];
+    public int[][] sudokuBoard = new int[9][9];
+    public int[][] diffSudokuBoard = new int[9][9];
+    public int boughtRuneNum = 0;
+    long startTime = 0;
     public boolean run(DDRunedokuConfig config) {
         Microbot.enableAutoRunOn = false;
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             if (!super.run()) return;
             try {
                 if(Rs2Widget.getWidget(sudokuBoardWidgetID) == null){
-                    talkToAli();
+                    if(Rs2Widget.hasWidget("Find out what the runes are")){
+                        buyRunes();
+                        System.out.println("Number of Runes Bought " + boughtRuneNum);
+                        System.out.println("Total time for loop " + (System.currentTimeMillis() - startTime));
+                    }else {
+                        startTime = System.currentTimeMillis();
+                        talkToAli();
+                    }
                 }else{
-                    fillSudoku();
+                    readSudokuBoard(originalSudokuBoard);
+                    for(int i = 0; i < originalSudokuBoard.length; i++)
+                        sudokuBoard[i] = originalSudokuBoard[i].clone();
+                    if(solveSudoku(sudokuBoard,0,0)){
+                        boardDifference(originalSudokuBoard, sudokuBoard, diffSudokuBoard);
+                        //printBoard(originalSudokuBoard);
+                        //printBoard(sudokuBoard);
+                        //printBoard(diffSudokuBoard);
+                        fillBoard(diffSudokuBoard);
+                        //if(checkBoard()){
+                        clickSubmit();
+                        sleep(250,500);
+                        sleepUntil(() -> Rs2Widget.hasWidget("Find out what the runes are"));
+                        //}else{
+                        //    fillBoard(diffSudokuBoard);
+                        //    clickSubmit();
+                        //}
+                    }
                 }
 
             } catch (Exception ex) {
@@ -60,8 +96,178 @@ public class DDRunedokuScript extends Script {
         sleepUntil(() -> Rs2Widget.getWidget(sudokuBoardWidgetID) != null);
     }
 
-    private void fillSudoku(){
-        Rs2Widget.clickChildWidget(19136521, 1);
+    private void readSudokuBoard(int[][] board){
+        //Go thru the loop to fill the buffer
+        for(int r = 0; r < 9; r++){
+            for(int c = 0; c < 9; c++){
+                board[r][c] = widgetNameToInt(r,c);
+            }
+        }
+    }
+
+    private boolean solveSudoku(int[][] board, int row, int column){
+        //Make sure we dont keep going if we are at the end of the grid
+        if(column == 9 && row == 8){ //We are at the very end
+            return true;
+        }
+        if(column == 9){
+            row++;
+            column = 0;
+        }
+        if(board[row][column] > 0){
+            return solveSudoku(board, row, column+1);
+        }
+        for(int num = 1; num <= 9; num++){
+            if(isSafe(board, column, row, num)) {
+                board[row][column] = num;
+                if (solveSudoku(board, row, column + 1)) {
+                    return true;
+                }
+            }
+            board[row][column] = 0;
+        }
+        return false;
+    }
+
+    /////////RULE VALIDATION FUNCTIONS!
+    private boolean isSafe(int[][] board, int row, int column, int value){
+        if(!rowIsSafe(board, column, row, value))
+            return false;
+        if(!columnIsSafe(board, column, row, value))
+            return false;
+        if(!boxIsSafe(board, column, row, value))
+            return false;
+        return true;
+    }
+
+    private boolean rowIsSafe(int[][] board, int row, int column, int value){
+        for(int c = 0; c < 9; c++){
+            if(board[row][c] == value)
+                return false;
+        }
+        return true;
+    }
+
+    private boolean columnIsSafe(int[][] board, int row, int column, int value){
+        for(int r = 0; r < 9; r++){
+            if(board[r][column] == value){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean boxIsSafe(int[][] board, int row, int column, int value){
+        int startRow = (row/3)*3;
+        int startCol = (column/3)*3;
+        for(int r = startRow; r < startRow+3; r++){
+            for(int c = startCol; c < startCol+3; c++){
+                if(board[r][c] == value) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private int widgetNameToInt(int row, int column){
+        int child = (row*9)+column;
+        if(Rs2Widget.getWidget(19136526).getChild(child) != null) {
+            String widgetName = Rs2Widget.getWidget(19136526).getChild(child).getName();
+            if (widgetName.equals("<col=ff9040>Water rune</col>"))
+                return 1;
+            if (widgetName.equals("<col=ff9040>Fire rune</col>"))
+                return 2;
+            if (widgetName.equals("<col=ff9040>Earth rune</col>"))
+                return 3;
+            if (widgetName.equals("<col=ff9040>Air rune</col>"))
+                return 4;
+            if (widgetName.equals("<col=ff9040>Mind rune</col>"))
+                return 5;
+            if (widgetName.equals("<col=ff9040>Body rune</col>"))
+                return 6;
+            if (widgetName.equals("<col=ff9040>Law rune</col>"))
+                return 7;
+            if (widgetName.equals("<col=ff9040>Chaos rune</col>"))
+                return 8;
+            if (widgetName.equals("<col=ff9040>Death rune</col>"))
+                return 9;
+        }
+        return 0;
+    }
+    void boardDifference(int[][] initialBoard, int[][] filledBoard, int[][] Diffboard){
+        for(int row = 0; row < 9; row++){
+            for(int col = 0; col < 9; col++){
+                if(initialBoard[row][col] == 0){
+                    Diffboard[row][col] = filledBoard[row][col];
+                }
+            }
+        }
+    }
+
+    void fillBoard(int[][] board){
+        Widget sudokuBoardWidget = Rs2Widget.getWidget(19136526);
+        for(int runes = 1; runes <= 9; runes++){ //For each rune run thru the board
+            //Choose the rune from the side panel
+            Rs2Widget.clickChildWidget(19136521, runes);
+            sleep(100,250);
+            for(int row = 0; row < 9; row++){
+                for(int col = 0; col < 9; col++){
+                    int childId = (row*9)+col;
+                    if(board[row][col] == runes){
+                        //readyToClick = false;
+                        Rs2Widget.clickChildWidget(19136526,childId);
+                        sleep(300,600);
+                        //while(!readyToClick){
+                        //    sleep(1);
+                        //}
+                    }
+                }
+            }
+        }
+    }
+
+    boolean checkBoard(){
+        for(int r = 0; r < 9; r++){
+            for(int c = 0; c < 9; c++) {
+                if(Rs2Widget.getWidget(19136526).getChild((r*9)+c).getName() == null) {
+                    //Select appropraite button on side
+                    Rs2Widget.clickChildWidget(19136521, sudokuBoard[r][c]);
+                    sleep(100,250);
+                    //click on the slot
+                    Rs2Widget.clickWidget(19136525, (r*9)+c);
+                }
+            }
+        }
+        return true;
+    }
+
+    void clickSubmit(){
+        Rs2Widget.clickChildWidget(19136522,8);
+    }
+
+    void buyRunes(){
+        Rs2Widget.clickWidget("Find out what the runes are");
+        sleep(100,250);
+        sleepUntil(() -> Rs2Widget.hasWidget("Ali Morrisane's discount rune store."));
+        boughtRuneNum += Rs2Widget.getWidget(19660816).getChild(Rs2Shop.getSlot("Cosmic rune")).getItemQuantity();
+        Rs2Shop.buyItem("Cosmic rune","50");
+        sleep(100,250);
+        sleepUntil(() -> !Rs2Shop.hasStock("Cosmic rune"));
+        Rs2Shop.closeShop();
+    }
+
+    void printBoard(int[][] board){
+        for(int row = 0; row < 9; row++){
+            if(row%3 == 0){System.out.println("------------");};
+            for(int col = 0; col < 9; col++){
+                if(col%3 == 0){System.out.print("|");};
+                System.out.print(board[row][col]);
+            }
+            System.out.println(" ");
+        }
+        System.out.println(" ");
+        System.out.println(" ");
     }
 
     @Override
