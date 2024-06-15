@@ -8,6 +8,7 @@ import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Item;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.math.Random;
@@ -43,7 +44,7 @@ public class DDRunedokuScript extends Script {
                 if(Rs2Widget.getWidget(sudokuBoardWidgetID) == null){
                     if(Rs2Widget.hasWidget("Find out what the runes are")){
                         buyRunes();
-                        System.out.println("Number of Runes Bought " + boughtRuneNum);
+                        System.out.println("Number of Runes Bought " + (Rs2Inventory.get("Cosmic runes").quantity -boughtRuneNum));
                         System.out.println("Total time for loop " + (System.currentTimeMillis() - startTime));
                     }else {
                         startTime = System.currentTimeMillis();
@@ -54,11 +55,11 @@ public class DDRunedokuScript extends Script {
                     for(int i = 0; i < originalSudokuBoard.length; i++)
                         sudokuBoard[i] = originalSudokuBoard[i].clone();
                     if(solveSudoku(sudokuBoard,0,0)){
-                        boardDifference(originalSudokuBoard, sudokuBoard, diffSudokuBoard);
                         //printBoard(originalSudokuBoard);
                         //printBoard(sudokuBoard);
                         //printBoard(diffSudokuBoard);
-                        fillBoard(diffSudokuBoard);
+                        fillBoard(sudokuBoard);
+                        checkBoard();
                         //if(checkBoard()){
                         clickSubmit();
                         sleep(250,500);
@@ -98,9 +99,43 @@ public class DDRunedokuScript extends Script {
 
     private void readSudokuBoard(int[][] board){
         //Go thru the loop to fill the buffer
-        for(int r = 0; r < 9; r++){
-            for(int c = 0; c < 9; c++){
-                board[r][c] = widgetNameToInt(r,c);
+        if(Rs2Widget.getWidget(19136526) != null) {
+            for(int r = 0; r < 9; r++){
+                for(int c = 0; c < 9; c++){
+                    int child = (r*9)+c;
+                    String widgetName = Rs2Widget.getWidget(19136526).getChild(child).getName();
+                    switch (widgetName) {
+                        case "<col=ff9040>Water rune</col>":
+                            board[r][c] = 1;
+                            continue;
+                        case "<col=ff9040>Fire rune</col>":
+                            board[r][c] = 2;
+                            continue;
+                        case "<col=ff9040>Earth rune</col>":
+                            board[r][c] = 3;
+                            continue;
+                        case "<col=ff9040>Air rune</col>":
+                            board[r][c] = 4;
+                            continue;
+                        case "<col=ff9040>Mind rune</col>":
+                            board[r][c] = 5;
+                            continue;
+                        case "<col=ff9040>Body rune</col>":
+                            board[r][c] = 6;
+                            continue;
+                        case "<col=ff9040>Law rune</col>":
+                            board[r][c] = 7;
+                            continue;
+                        case "<col=ff9040>Chaos rune</col>":
+                            board[r][c] = 8;
+                            continue;
+                        case "<col=ff9040>Death rune</col>":
+                            board[r][c] = 9;
+                            continue;
+                        default:
+                            board[r][c] = 0;
+                    }
+                }
             }
         }
     }
@@ -210,16 +245,15 @@ public class DDRunedokuScript extends Script {
         for(int runes = 1; runes <= 9; runes++){ //For each rune run thru the board
             //Choose the rune from the side panel
             Rs2Widget.clickChildWidget(19136521, runes);
-            sleep(100,250);
+            sleep(300,600);
             for(int row = 0; row < 9; row++){
                 for(int col = 0; col < 9; col++){
                     int childId = (row*9)+col;
-                    if(board[row][col] == runes){
-                        //readyToClick = false;
-                        Rs2Widget.clickChildWidget(19136526,childId);
-                        sleep(300,600);
+                    if(board[row][col] == runes && originalSudokuBoard[row][col] == 0){
+                        readyToClick = false;
+                        Rs2Widget.clickChildWidget(19136525,childId);
                         //while(!readyToClick){
-                        //    sleep(1);
+                        sleep(100,200);
                         //}
                     }
                 }
@@ -230,12 +264,14 @@ public class DDRunedokuScript extends Script {
     boolean checkBoard(){
         for(int r = 0; r < 9; r++){
             for(int c = 0; c < 9; c++) {
-                if(Rs2Widget.getWidget(19136526).getChild((r*9)+c).getName() == null) {
+                int temp = Rs2Widget.getWidget(19136525).getChild((r*9)+c).getItemId();
+                if(Rs2Widget.getWidget(19136525).getChild((r*9)+c).getItemId() == -1) {
                     //Select appropraite button on side
                     Rs2Widget.clickChildWidget(19136521, sudokuBoard[r][c]);
-                    sleep(100,250);
+                    sleep(200,300);
                     //click on the slot
-                    Rs2Widget.clickWidget(19136525, (r*9)+c);
+                    Rs2Widget.clickChildWidget(19136525, (r*9)+c);
+                    sleep(100,200);
                 }
             }
         }
@@ -250,8 +286,7 @@ public class DDRunedokuScript extends Script {
         Rs2Widget.clickWidget("Find out what the runes are");
         sleep(100,250);
         sleepUntil(() -> Rs2Widget.hasWidget("Ali Morrisane's discount rune store."));
-        boughtRuneNum += Rs2Widget.getWidget(19660816).getChild(Rs2Shop.getSlot("Cosmic rune")).getItemQuantity();
-        Rs2Shop.buyItem("Cosmic rune","50");
+        Rs2Shop.buyItem("Cosmic rune", "50");
         sleep(100,250);
         sleepUntil(() -> !Rs2Shop.hasStock("Cosmic rune"));
         Rs2Shop.closeShop();

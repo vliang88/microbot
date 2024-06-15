@@ -3,11 +3,11 @@ package net.runelite.client.plugins.microbot.DDRunedoku;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.GameTick;
-import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
@@ -35,12 +35,6 @@ public class DDRunedokuPlugin extends Plugin {
 
     @Inject
     net.runelite.client.plugins.microbot.DDRunedoku.DDRunedokuScript DDRunedokuScript;
-
-    @Subscribe
-    public void onGameTick(GameTick event)
-    {
-            DDRunedokuScript.readyToClick = true;
-    }
 
     @Override
     protected void startUp() throws AWTException {
