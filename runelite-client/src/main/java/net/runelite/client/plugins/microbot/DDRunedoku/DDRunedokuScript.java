@@ -44,7 +44,6 @@ public class DDRunedokuScript extends Script {
                 if(Rs2Widget.getWidget(sudokuBoardWidgetID) == null){
                     if(Rs2Widget.hasWidget("Find out what the runes are")){
                         buyRunes();
-                        System.out.println("Number of Runes Bought " + (Rs2Inventory.get("Cosmic runes").quantity -boughtRuneNum));
                         System.out.println("Total time for loop " + (System.currentTimeMillis() - startTime));
                     }else {
                         startTime = System.currentTimeMillis();
@@ -60,14 +59,9 @@ public class DDRunedokuScript extends Script {
                         //printBoard(diffSudokuBoard);
                         fillBoard(sudokuBoard);
                         checkBoard();
-                        //if(checkBoard()){
                         clickSubmit();
                         sleep(250,500);
                         sleepUntil(() -> Rs2Widget.hasWidget("Find out what the runes are"));
-                        //}else{
-                        //    fillBoard(diffSudokuBoard);
-                        //    clickSubmit();
-                        //}
                     }
                 }
 
@@ -205,41 +199,6 @@ public class DDRunedokuScript extends Script {
         return true;
     }
 
-    private int widgetNameToInt(int row, int column){
-        int child = (row*9)+column;
-        if(Rs2Widget.getWidget(19136526).getChild(child) != null) {
-            String widgetName = Rs2Widget.getWidget(19136526).getChild(child).getName();
-            if (widgetName.equals("<col=ff9040>Water rune</col>"))
-                return 1;
-            if (widgetName.equals("<col=ff9040>Fire rune</col>"))
-                return 2;
-            if (widgetName.equals("<col=ff9040>Earth rune</col>"))
-                return 3;
-            if (widgetName.equals("<col=ff9040>Air rune</col>"))
-                return 4;
-            if (widgetName.equals("<col=ff9040>Mind rune</col>"))
-                return 5;
-            if (widgetName.equals("<col=ff9040>Body rune</col>"))
-                return 6;
-            if (widgetName.equals("<col=ff9040>Law rune</col>"))
-                return 7;
-            if (widgetName.equals("<col=ff9040>Chaos rune</col>"))
-                return 8;
-            if (widgetName.equals("<col=ff9040>Death rune</col>"))
-                return 9;
-        }
-        return 0;
-    }
-    void boardDifference(int[][] initialBoard, int[][] filledBoard, int[][] Diffboard){
-        for(int row = 0; row < 9; row++){
-            for(int col = 0; col < 9; col++){
-                if(initialBoard[row][col] == 0){
-                    Diffboard[row][col] = filledBoard[row][col];
-                }
-            }
-        }
-    }
-
     void fillBoard(int[][] board){
         Widget sudokuBoardWidget = Rs2Widget.getWidget(19136526);
         for(int runes = 1; runes <= 9; runes++){ //For each rune run thru the board
@@ -252,9 +211,7 @@ public class DDRunedokuScript extends Script {
                     if(board[row][col] == runes && originalSudokuBoard[row][col] == 0){
                         readyToClick = false;
                         Rs2Widget.clickChildWidget(19136525,childId);
-                        //while(!readyToClick){
                         sleep(100,200);
-                        //}
                     }
                 }
             }
