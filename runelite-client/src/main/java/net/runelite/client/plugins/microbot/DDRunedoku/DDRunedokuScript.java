@@ -43,6 +43,7 @@ public class DDRunedokuScript extends Script {
             try {
                 //Make sure we have enoug money
                 if(Rs2Inventory.get("Coins").quantity < 5000){
+                    System.out.println("Runtime: " + System.currentTimeMillis());
                     Microbot.pauseAllScripts = true;
                 }
                 if(Rs2Widget.getWidget(sudokuBoardWidgetID) == null){
