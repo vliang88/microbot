@@ -179,7 +179,15 @@ public class DDBlastFurnaceScript extends Script {
         if(!Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getPrimaryOre(),30) ||
                 !Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getSecondaryOre(), 30)){//||
                 //!Rs2Bank.hasBankItem(coinID, config.cofferReloadAmount())){
-            Microbot.pauseAllScripts = true;
+            //Microbot.pauseAllScripts = true;
+            Rs2Bank.depositAll();
+            Rs2Bank.withdrawOne("Varrock teleport");
+            sleepUntilTrue(()->Rs2Inventory.contains("Varrock teleport"), 100,2000);
+            Rs2Bank.closeBank();
+            while(Rs2Inventory.contains("Varrock teleport")){
+                Rs2Inventory.interact("Varrock teleport", "break");
+                sleep(2000);
+            }
             masterOnSwitch = false;
             return;
         }
