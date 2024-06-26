@@ -89,11 +89,15 @@ public class DDBlastFurnaceScript extends Script {
                 if(Microbot.getClient().getEnergy() > 20){
                     Rs2Player.toggleRunEnergy(true);
                 }
+                if(!Rs2Walker.isInArea(dispenserWP, 30)){
+                    currentState = blastFurnanceStates.state_init;
+                }
                 switch (currentState){
                     case state_init:
                         if(!Rs2Walker.isInArea(dispenserWP, 30)){
                             Rs2Walker.walkTo(dispenserWP);
                             sleepUntilTrue(()->!Rs2Player.isWalking(), 100, 5000);
+                            break;
                         }
                         currentState = blastFurnanceStates.state_doBank;
                         break;
@@ -165,7 +169,8 @@ public class DDBlastFurnaceScript extends Script {
             //Rs2Bank.openBank();
             if(Rs2GameObject.get("chest") != null) {
                 Rs2GameObject.interact("chest", "Use");
-                sleepUntilTrue(Rs2Bank::isOpen, 100, 5000);
+                sleepUntilTrue(Rs2Bank::isOpen, 100, 10000);
+                return;
             }else{
                 Rs2Walker.walkTo(BankLocation.BLAST_FURNACE_BANK.getWorldPoint());
             }
@@ -187,6 +192,7 @@ public class DDBlastFurnaceScript extends Script {
             Rs2Bank.withdrawX(coinID, amountWithdraw);
             sleepUntilTrue(() -> Rs2Inventory.contains(coinID), 100, 5000);
             Rs2Bank.closeBank();
+            return;
         }else {
             //We will be withdrawing ores here depending on our configuration
             //check if we have our coal bag, water bucket(if not using ice glove), and what we making
