@@ -2,6 +2,7 @@ package net.runelite.client.plugins.microbot.DDBlastFurnace;
 
 import net.runelite.api.*;
 import net.runelite.api.annotations.Component;
+import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
@@ -10,6 +11,7 @@ import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
 import net.runelite.client.plugins.microbot.globval.WidgetIndices;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
+import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
 import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
@@ -32,9 +34,15 @@ import static java.util.Objects.nonNull;
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntilOnClientThread;
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntilTrue;
 
-
 public class DDBlastFurnaceScript extends Script {
-    public static double version = 1.0;
+    enum blastFurnanceStates{
+        state_init,
+        state_doBank,
+        state_payForemanAndCoffer,
+        state_placeOreToConveyer,
+        state_takeFromDispenser
+    }
+    public static double version = 2.0;
     public int coinID = 995;
     public int bucketId = 1925;
     public int bucketOfWaterId = 1929;
@@ -51,6 +59,7 @@ public class DDBlastFurnaceScript extends Script {
     public boolean skipTakeBar = false;
     public static long timeStart =0;
     public WorldPoint dispenserWP = new WorldPoint(1939,4963,0);
+    public WorldArea blastFurnanceWA= new WorldArea(1935,4956,20,20,0);
     public static int barsSmelted = 0;
     public static int barPrice= 0;
     public static int primOrePrice = 0;
@@ -58,6 +67,7 @@ public class DDBlastFurnaceScript extends Script {
     public static int stamPotSipPrice = 0;
     public static int cofferAndForemanAndSipsSpent = 0;
     public static boolean masterOnSwitch = false;
+    public static blastFurnanceStates currentState = blastFurnanceStates.state_init;
 
     public void getPrices(DDBlastFurnaceConfig config){
         barPrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getBarId(), true);
@@ -73,47 +83,75 @@ public class DDBlastFurnaceScript extends Script {
         cofferAndForemanAndSipsSpent = 0;
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             if (!super.run()) return;
-            //if(!masterOnSwitch) return;
+            if(!masterOnSwitch) return;
             try {
                 //Make sure run is always on as long as we have 20 run energy
                 if(Microbot.getClient().getEnergy() > 20){
                     Rs2Player.toggleRunEnergy(true);
                 }
-                //go pay foreman/coffer. Only reason why we got cash
-                if(Rs2Inventory.get(coinID) != null){
-                    payForemanAndCoffer(config);
-                }
-                //If we are carrying ore, put into conveyer if we have have ice glove else check bucket
-                if((Rs2Inventory.get(config.BlastFurnaceBarSelection().getPrimaryOre()) != null) ||
-                        (Rs2Inventory.get(coalId) != null)){
-                    if(config.useIceGlove()){
-                        //We are using ice glove, Go to conveyor
-                        placeOreOntoConveyer();
-                    }else{
-                        //We are not using ice glove
-                        if(Rs2Inventory.contains(bucketId)){
-                            fillBucket();
-                            placeOreOntoConveyer();
-                        }else if(Rs2Inventory.contains(bucketOfWaterId)){
-                            placeOreOntoConveyer();
+                switch (currentState){
+                    case state_init:
+                        if(!Rs2Walker.isInArea(dispenserWP, 30)){
+                            Rs2Walker.walkTo(dispenserWP);
+                            sleepUntilTrue(()->!Rs2Player.isWalking(), 100, 5000);
                         }
-                    }
-                }
-                if(!skipTakeBar && placeConveyerCnt == 2) {
-                    if(Math.random() > 0.25) {
-                        Rs2Walker.walkMiniMap(dispenserWP);
-                    }
-                    sleepUntil(this::dispenserHasBar);
-                    grabBarsFromDispenser(config.useIceGlove(),config.BlastFurnaceBarSelection().getVarbit());
+                        currentState = blastFurnanceStates.state_doBank;
+                        break;
+                    case state_doBank:
+                        doBank(config);
+                        if(Rs2Inventory.get(coinID) != null){
+                            currentState = blastFurnanceStates.state_payForemanAndCoffer;
+                        }
+                        else if(Rs2Inventory.get("bar") != null)
+                        {
+                            break;
+                        }else{
+                            currentState = blastFurnanceStates.state_placeOreToConveyer;
+                        }
+                        break;
+                    case state_payForemanAndCoffer:
+                        payForemanAndCoffer(config);
+                        currentState = blastFurnanceStates.state_doBank;
+                        break;
+                    case state_placeOreToConveyer:
+                        if((Rs2Inventory.get(config.BlastFurnaceBarSelection().getPrimaryOre()) != null) ||
+                                (Rs2Inventory.get(coalId) != null)){
+                            if(config.useIceGlove()){
+                                //We are using ice glove, Go to conveyor
+                                placeOreOntoConveyer();
+                            }else{
+                                //We are not using ice glove
+                                if(Rs2Inventory.contains(bucketId)){
+                                    fillBucket();
+                                    placeOreOntoConveyer();
+                                }else if(Rs2Inventory.contains(bucketOfWaterId)){
+                                    placeOreOntoConveyer();
+                                }
+                            }
+                            currentState = blastFurnanceStates.state_takeFromDispenser;
+                        }else{
+                            currentState = blastFurnanceStates.state_doBank;
+                        }
+                        break;
+                    case state_takeFromDispenser:
+                        if(!skipTakeBar && placeConveyerCnt == 2) {
+                            if(Math.random() > 0.25) {
+                                Rs2Walker.walkMiniMap(dispenserWP);
+                            }
+                            sleepUntil(this::dispenserHasBar);
+                            grabBarsFromDispenser(config.useIceGlove(),config.BlastFurnaceBarSelection().getVarbit());
 
+                        }
+                        //Corner case where we didnt get the bar for some odd reason
+                        if(dispenserHasBar() && !Rs2Inventory.isFull()){
+                            grabBarsFromDispenser(config.useIceGlove(),config.BlastFurnaceBarSelection().getVarbit());
+                        }
+                        placeConveyerCnt =0;
+                        currentState = blastFurnanceStates.state_doBank;
+                        break;
+                    default:
+                        break;
                 }
-                //Corner case where we didnt get the bar for some odd reason
-                if(dispenserHasBar() && !Rs2Inventory.isFull()){
-                    grabBarsFromDispenser(config.useIceGlove(),config.BlastFurnaceBarSelection().getVarbit());
-                }
-                placeConveyerCnt =0;
-                doBank(config);
-
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }
@@ -124,8 +162,13 @@ public class DDBlastFurnaceScript extends Script {
     void doBank(DDBlastFurnaceConfig config){
         //Open bank if its not open
         if(!Rs2Bank.isOpen()){
-            Rs2Bank.openBank();
-            sleepUntilTrue(Rs2Bank::isOpen, 100, 5000);
+            //Rs2Bank.openBank();
+            if(Rs2GameObject.get("chest") != null) {
+                Rs2GameObject.interact("chest", "Use");
+                sleepUntilTrue(Rs2Bank::isOpen, 100, 5000);
+            }else{
+                Rs2Walker.walkTo(BankLocation.BLAST_FURNACE_BANK.getWorldPoint());
+            }
         }
         //Make sure we have enough ores
         if(!Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getPrimaryOre(),30) ||
@@ -182,7 +225,7 @@ public class DDBlastFurnaceScript extends Script {
                 Rs2Bank.withdrawOne("Stamina potion", 600);
                 //sleepUntil(()-> Rs2Inventory.contains("Stamina potion"));
                 if(Rs2Inventory.get("Stamina") != null) {
-                    if (Rs2Inventory.interact("Stamina", "rink")) {
+                    if (Rs2Inventory.interact("Stamina", "Drink")) {
                         cofferAndForemanAndSipsSpent += stamPotSipPrice;
                         sleep(100, 250);
                         sleepUntilTrue(() -> !needtoDrinkStamPot(), 100, 5000);

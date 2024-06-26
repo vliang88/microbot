@@ -66,6 +66,7 @@ public class DDMoneyMovesPlugin extends Plugin {
     }
 
     protected void shutDown() {
+        DDBlastFurnaceScript.masterOnSwitch = false;
         DDMoneyMovesScript.shutdown();
         overlayManager.remove(DDMoneyMovesOverlay);
     }
