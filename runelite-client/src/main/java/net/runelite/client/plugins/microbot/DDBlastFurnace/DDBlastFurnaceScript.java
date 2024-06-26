@@ -167,8 +167,8 @@ public class DDBlastFurnaceScript extends Script {
         //Open bank if its not open
         if(!Rs2Bank.isOpen()){
             //Rs2Bank.openBank();
-            if(Rs2GameObject.get("chest") != null) {
-                Rs2GameObject.interact("chest", "Use");
+            if(Rs2GameObject.getGameObjects(26707) != null) {
+                Rs2GameObject.interact(26707, "Use");
                 sleepUntilTrue(Rs2Bank::isOpen, 100, 10000);
                 return;
             }else{
