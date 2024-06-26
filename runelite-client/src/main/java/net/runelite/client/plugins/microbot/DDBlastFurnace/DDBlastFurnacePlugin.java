@@ -56,7 +56,7 @@ public class DDBlastFurnacePlugin extends Plugin {
                 event.getMessage().contains("The coal bag still contains")){
             DDBlastFurnaceScript.coalBagState = 0;
         }
-        if(event.getMessage().contains("The coal bag contains ")){
+        if(event.getMessage().contains("pieces of coal")){
             DDBlastFurnaceScript.coalBagState = 1;
         }
         if(event.getMessage().contains("All your ore goes onto the conveyor belt")){
