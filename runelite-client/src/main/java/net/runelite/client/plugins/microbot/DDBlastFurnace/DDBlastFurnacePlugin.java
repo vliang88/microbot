@@ -77,6 +77,7 @@ public class DDBlastFurnacePlugin extends Plugin {
         }
         clientThread.invoke(()-> {
             DDBlastFurnaceScript.getPrices(config);
+            DDBlastFurnaceScript.getOreNames(config);
         });
         DDBlastFurnaceScript.run(config);
     }

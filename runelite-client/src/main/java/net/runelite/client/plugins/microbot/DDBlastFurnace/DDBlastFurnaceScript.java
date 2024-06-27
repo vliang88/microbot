@@ -68,12 +68,20 @@ public class DDBlastFurnaceScript extends Script {
     public static int cofferAndForemanAndSipsSpent = 0;
     public static boolean masterOnSwitch = false;
     public static blastFurnanceStates currentState = blastFurnanceStates.state_init;
+    public static String primOre;
+    public static String secOre;
+    public static int coalAmountPerPrim;
 
     public void getPrices(DDBlastFurnaceConfig config){
         barPrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getBarId(), true);
         primOrePrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getPrimaryId(),true);
         secOrePrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getSecondaryId(),true) * config.BlastFurnaceBarSelection().getCoalRequired();
         stamPotSipPrice = Microbot.getItemManager().getItemPriceWithSource(stamPot1DoseId, true);
+    }
+    public void getOreNames(DDBlastFurnaceConfig config){
+        primOre = config.BlastFurnaceBarSelection().getPrimaryOre();
+        secOre = config.BlastFurnaceBarSelection().getSecondaryOre();
+        coalAmountPerPrim = config.BlastFurnaceBarSelection().getCoalRequired();
     }
 
     public boolean run(DDBlastFurnaceConfig config) {

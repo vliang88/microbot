@@ -154,7 +154,8 @@ public class Rs2GrandExchange {
     }
 
     private static void confirm() {
-        Microbot.getMouse().click(getConfirm().getBounds());
+        //Microbot.getMouse().click(getConfirm().getBounds());
+        Rs2Widget.clickWidget(30474269);
         sleepUntil(() -> Rs2Widget.hasWidget("Your offer is much higher"), 2000);
         if (Rs2Widget.hasWidget("Your offer is much higher")) {
             Rs2Widget.clickWidget("Yes");
@@ -215,8 +216,7 @@ public class Rs2GrandExchange {
         Widget pricePerItemButton5Percent = getPricePerItemButton_Plus5Percent();
         if (pricePerItemButton5Percent != null) {
             Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
-            Microbot.getMouse().click(getConfirm().getBounds());
-            sleepUntil(() -> !isOfferTextVisible());
+            sleep(600,1200);
             return true;
         } else {
             System.out.println("unable to find widget setprice.");
