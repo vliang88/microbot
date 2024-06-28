@@ -1,46 +1,40 @@
 package net.runelite.client.plugins.microbot.DDBlastFurnace;
 
 import net.runelite.api.*;
-import net.runelite.api.annotations.Component;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.widgets.ComponentID;
-import net.runelite.api.widgets.InterfaceID;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
-import net.runelite.client.plugins.microbot.globval.WidgetIndices;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
-import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
+import net.runelite.client.plugins.microbot.util.grandexchange.Rs2GrandExchange;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
-import net.runelite.client.plugins.microbot.util.inventory.Rs2Item;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
-import net.runelite.client.plugins.microbot.util.math.Random;
-import net.runelite.client.plugins.microbot.util.models.RS2Item;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
-import net.runelite.client.plugins.microbot.util.shop.Rs2Shop;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
 import java.awt.event.KeyEvent;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 
-import static java.util.Objects.nonNull;
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntilOnClientThread;
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntilTrue;
 
 public class DDBlastFurnaceScript extends Script {
     enum blastFurnanceStates{
-        state_init,
-        state_doBank,
-        state_payForemanAndCoffer,
-        state_placeOreToConveyer,
-        state_takeFromDispenser
+        state_BF_init,
+        state_BF_doBank,
+        state_BF_payForemanAndCoffer,
+        state_BF_placeOreToConveyer,
+        state_BF_takeFromDispenser,
+        state_BF_goToKeldagrim,
+        state_goToGe,
+        state_sellProducts,
+        state_buySupplies,
+        state_decideScriptToRun,
+        state_DM_init
     }
     public static double version = 2.0;
     public int coinID = 995;
@@ -66,11 +60,17 @@ public class DDBlastFurnaceScript extends Script {
     public static int secOrePrice = 0;
     public static int stamPotSipPrice = 0;
     public static int cofferAndForemanAndSipsSpent = 0;
-    public static boolean masterOnSwitch = false;
-    public static blastFurnanceStates currentState = blastFurnanceStates.state_init;
+    public static boolean masterOnSwitch = true;
+    public static blastFurnanceStates currentState = blastFurnanceStates.state_BF_init;
     public static String primOre;
     public static String secOre;
+    public static String barName;
     public static int coalAmountPerPrim;
+
+    int primOre_inBank;
+    int secOre_inBank;
+    int stamPot_inBank;
+    int ironBar_inBank;
 
     public void getPrices(DDBlastFurnaceConfig config){
         barPrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getBarId(), true);
@@ -82,6 +82,7 @@ public class DDBlastFurnaceScript extends Script {
         primOre = config.BlastFurnaceBarSelection().getPrimaryOre();
         secOre = config.BlastFurnaceBarSelection().getSecondaryOre();
         coalAmountPerPrim = config.BlastFurnaceBarSelection().getCoalRequired();
+        barName = config.BlastFurnaceBarSelection().getName();
     }
 
     public boolean run(DDBlastFurnaceConfig config) {
@@ -91,41 +92,44 @@ public class DDBlastFurnaceScript extends Script {
         cofferAndForemanAndSipsSpent = 0;
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             if (!super.run()) return;
-            if(!masterOnSwitch) return;
+            //if(!masterOnSwitch) return;
             try {
                 //Make sure run is always on as long as we have 20 run energy
                 if(Microbot.getClient().getEnergy() > 20){
                     Rs2Player.toggleRunEnergy(true);
                 }
-                if(!Rs2Walker.isInArea(dispenserWP, 30)){
-                    currentState = blastFurnanceStates.state_init;
-                }
+                //if(!Rs2Walker.isInArea(dispenserWP, 30)){
+                //    currentState = blastFurnanceStates.state_init;
+                //}
                 switch (currentState){
-                    case state_init:
+                    case state_BF_init:
                         if(!Rs2Walker.isInArea(dispenserWP, 30)){
                             Rs2Walker.walkTo(dispenserWP);
                             sleepUntilTrue(()->!Rs2Player.isWalking(), 100, 5000);
                             break;
                         }
-                        currentState = blastFurnanceStates.state_doBank;
+                        currentState = blastFurnanceStates.state_BF_doBank;
                         break;
-                    case state_doBank:
+                    case state_BF_doBank:
                         doBank(config);
+                        if(currentState == blastFurnanceStates.state_goToGe){
+                            break; //We just teleported to varrock
+                        }
                         if(Rs2Inventory.get(coinID) != null){
-                            currentState = blastFurnanceStates.state_payForemanAndCoffer;
+                            currentState = blastFurnanceStates.state_BF_payForemanAndCoffer;
                         }
                         else if(Rs2Inventory.get("bar") != null)
                         {
                             break;
                         }else{
-                            currentState = blastFurnanceStates.state_placeOreToConveyer;
+                            currentState = blastFurnanceStates.state_BF_placeOreToConveyer;
                         }
                         break;
-                    case state_payForemanAndCoffer:
+                    case state_BF_payForemanAndCoffer:
                         payForemanAndCoffer(config);
-                        currentState = blastFurnanceStates.state_doBank;
+                        currentState = blastFurnanceStates.state_BF_doBank;
                         break;
-                    case state_placeOreToConveyer:
+                    case state_BF_placeOreToConveyer:
                         if((Rs2Inventory.get(config.BlastFurnaceBarSelection().getPrimaryOre()) != null) ||
                                 (Rs2Inventory.get(coalId) != null)){
                             if(config.useIceGlove()){
@@ -140,12 +144,12 @@ public class DDBlastFurnaceScript extends Script {
                                     placeOreOntoConveyer();
                                 }
                             }
-                            currentState = blastFurnanceStates.state_takeFromDispenser;
+                            currentState = blastFurnanceStates.state_BF_takeFromDispenser;
                         }else{
-                            currentState = blastFurnanceStates.state_doBank;
+                            currentState = blastFurnanceStates.state_BF_doBank;
                         }
                         break;
-                    case state_takeFromDispenser:
+                    case state_BF_takeFromDispenser:
                         if(!skipTakeBar && placeConveyerCnt == 2) {
                             if(Math.random() > 0.25) {
                                 Rs2Walker.walkMiniMap(dispenserWP);
@@ -159,7 +163,70 @@ public class DDBlastFurnaceScript extends Script {
                             grabBarsFromDispenser(config.useIceGlove(),config.BlastFurnaceBarSelection().getVarbit());
                         }
                         placeConveyerCnt =0;
-                        currentState = blastFurnanceStates.state_doBank;
+                        currentState = blastFurnanceStates.state_BF_doBank;
+                        break;
+                    case state_goToGe:
+                        if(!Rs2Walker.isInArea(BankLocation.GRAND_EXCHANGE.getWorldPoint(),5)){
+                            Rs2Walker.walkTo(new WorldPoint(3161,3490,0));
+                            break;
+                        }else{
+                            sleepUntilTrue(()->!Rs2Player.isMoving(),600,5000);
+                            currentState = blastFurnanceStates.state_sellProducts;
+                        }
+                        break;
+                    case state_sellProducts:
+                        if(Rs2Inventory.isEmpty()) {
+                            withdrawAllAsset(config);
+                            if(Rs2Inventory.isEmpty()) {
+                                currentState = blastFurnanceStates.state_buySupplies;
+                                break;
+                            }
+                        }
+                        if(Rs2GrandExchange.openExchange()) {
+                            if (Rs2GrandExchange.sellInventory()) {
+                                //Everything from inventory is placed onto market
+                                //sleepUntilTrue(Rs2GrandExchange::hasSoldOffer, 100, 10000);
+                                sleep(5000,10000);
+                                if (Rs2GrandExchange.hasSoldOffer()) {
+                                    Rs2GrandExchange.collectToBank();
+                                }
+                                currentState = blastFurnanceStates.state_buySupplies;
+                            }
+                        }
+                        break;
+                    case state_buySupplies:
+                        if(updateInBankCount(config)){
+                            if(buySupplies(config)){
+                                Rs2GrandExchange.closeExchange();
+                                currentState = blastFurnanceStates.state_decideScriptToRun;
+                            }
+                        }
+                        break;
+                    case state_decideScriptToRun:
+                        updateInBankCount(config); //Get Bank item counts agian
+                        int scriptDecided = decideScript(config);
+                        switch (scriptDecided){
+                            case 0:
+                                //We dont have supplies for either.
+                                Microbot.pauseAllScripts = true;
+                                break;
+                            case 1:
+                                currentState = blastFurnanceStates.state_BF_goToKeldagrim;
+                                break;
+                            case 2:
+                                currentState = blastFurnanceStates.state_DM_init;
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case state_BF_goToKeldagrim:
+                        Rs2Walker.walkTo(3141, 3504, 0);
+                        sleepUntilTrue(() -> !Rs2Player.isMoving(), 600, 5000);
+                        Rs2GameObject.interact(ObjectID.TRAPDOOR_16168);
+                        sleep(600,1200);
+                        sleepUntilTrue(() -> !Rs2GameObject.exists(ObjectID.TRAPDOOR_16168), 600, 8000);
+                        currentState = blastFurnanceStates.state_BF_init;
                         break;
                     default:
                         break;
@@ -169,6 +236,18 @@ public class DDBlastFurnaceScript extends Script {
             }
         }, 0, 100, TimeUnit.MILLISECONDS);
         return true;
+    }
+
+    int decideScript(DDBlastFurnaceConfig config){
+        if(primOre_inBank >= config.blastFurnaceRestockAmount() &&
+            secOre_inBank >= (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) &&
+            stamPot_inBank >= (config.blastFurnaceRestockAmount()/350)) {
+            return 1;
+        }
+        if(ironBar_inBank >= (config.blastFurnaceRestockAmount())){
+            return 2;
+        }
+        return 0;
     }
 
     void doBank(DDBlastFurnaceConfig config){
@@ -183,9 +262,8 @@ public class DDBlastFurnaceScript extends Script {
                 Rs2Walker.walkTo(BankLocation.BLAST_FURNACE_BANK.getWorldPoint());
             }
         }
-        //Make sure we have enough ores
-        if(!Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getPrimaryOre(),30) ||
-                !Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getSecondaryOre(), 30)){//||
+        if(!Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getPrimaryId(),30) ||
+                !Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getSecondaryId(), 30)){//||
                 //!Rs2Bank.hasBankItem(coinID, config.cofferReloadAmount())){
             //Microbot.pauseAllScripts = true;
             Rs2Bank.depositAll();
@@ -195,8 +273,10 @@ public class DDBlastFurnaceScript extends Script {
             while(Rs2Inventory.contains("Varrock teleport")){
                 Rs2Inventory.interact("Varrock teleport", "break");
                 sleep(2000);
+                sleepUntilTrue(() -> !Rs2Player.isAnimating(),100,5000);
+                currentState = blastFurnanceStates.state_goToGe;
             }
-            masterOnSwitch = false;
+            //masterOnSwitch = false;
             return;
         }
         //We have to deposit everything including bars. Leave coal bag and bucket to start new.
@@ -381,8 +461,64 @@ public class DDBlastFurnaceScript extends Script {
         }
     }
 
+    void withdrawAllAsset(DDBlastFurnaceConfig config){
+        if(!Rs2Bank.isOpen()){
+            Rs2Bank.openBank();
+        }
+        Rs2Bank.setWithdrawAsNote();
+        sleep(600,1200);
+        //For blast furnace assets
+        if(Rs2Bank.hasBankItem(config.BlastFurnaceBarSelection().getName())) {
+            Rs2Bank.withdrawAll(config.BlastFurnaceBarSelection().getBarId());
+            sleep(600, 1200);
+        }
+        //For Dart Making assets
+        if(Rs2Bank.hasBankItem("Iron dart tip")) {
+            Rs2Bank.withdrawAll("Iron dart tip");
+            sleep(600, 1200);
+        }
+        Rs2Bank.closeBank();
+        sleepUntilTrue(()->!Rs2Bank.isOpen(),100,5000);
+    }
+
+    boolean updateInBankCount(DDBlastFurnaceConfig config){
+        if(!Rs2Bank.isOpen()) {
+            Rs2Bank.openBank();
+            sleepUntilTrue(Rs2Bank::isOpen, 600, 5000);
+        }
+        primOre_inBank = Rs2Bank.findBankItem(config.BlastFurnaceBarSelection().getPrimaryOre()).quantity;
+        secOre_inBank = Rs2Bank.findBankItem(config.BlastFurnaceBarSelection().getSecondaryOre()).quantity;
+        stamPot_inBank = Rs2Bank.findBankItem("Stamina potion(4)").quantity;
+        ironBar_inBank = Rs2Bank.findBankItem("Iron bar").quantity;
+        Rs2Bank.closeBank();
+        sleepUntilTrue(()->!Rs2Bank.isOpen(),100, 5000);
+        return true;
+    }
+
+    boolean buySupplies(DDBlastFurnaceConfig config){
+        if(!Rs2GrandExchange.isOpen()) {
+            Rs2GrandExchange.openExchange();
+        }
+        if(primOre_inBank < config.blastFurnaceRestockAmount()) {
+            Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getPrimaryOre(), config.blastFurnaceRestockAmount() - primOre_inBank);
+        }
+        if(secOre_inBank < (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired())){
+            Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
+        }
+        if(stamPot_inBank < (config.blastFurnaceRestockAmount()/350)){
+            Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getPrimaryOre(), (config.blastFurnaceRestockAmount()/350) - stamPot_inBank);
+        }
+        if(ironBar_inBank < (config.blastFurnaceRestockAmount())){
+            Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.blastFurnaceRestockAmount() - ironBar_inBank);
+        }
+        sleepUntilTrue(Rs2GrandExchange::hasBoughtOffer, 100, 5000);
+        Rs2GrandExchange.collect(true);
+        return true;
+    }
+
     @Override
     public void shutdown() {
+        currentState = blastFurnanceStates.state_BF_init;
         super.shutdown();
     }
 }
