@@ -87,4 +87,24 @@ public interface DDBlastFurnaceConfig extends Config {
             section = StaminaPotSection
     )
     default boolean useStaminaPot() {return false;}
+
+    /////////Restock Section/////////////
+    @ConfigSection(
+            name = "Restock",
+            description = "Restock",
+            position = 4,
+            closedByDefault = false
+    )
+    String RestockSection = "How much to restock";
+
+    @ConfigItem(
+            keyName = "Restock Amount",
+            name = "Restock Amount",
+            description = "Restock Amount",
+            position = 1,
+            section = RestockSection
+    )
+    default int blastFurnaceRestockAmount() {return 50;}
+
 }
+

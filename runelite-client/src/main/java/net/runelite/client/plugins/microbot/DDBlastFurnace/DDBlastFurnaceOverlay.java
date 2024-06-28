@@ -63,6 +63,10 @@ public class DDBlastFurnaceOverlay extends OverlayPanel {
                     .left("Profit Per Hour: "+ ((profit* 3600000L)/timeRanMs))
                     .build());
 
+            panelComponent.getChildren().add(LineComponent.builder()
+                    .left("State: "+ DDBlastFurnaceScript.currentState)
+                    .build());
+
         } catch (Exception ex) {
             System.out.println(ex.getMessage());
         }
