@@ -194,7 +194,7 @@ public class Rs2Bank {
         Rs2Item rs2Item = findBankItem(id);
         if (rs2Item == null) return false;
         log.info("Item: " + rs2Item.name + " Amount: " + rs2Item.quantity);
-        return findBankItem(Objects.requireNonNull(rs2Item).name, false, amount) != null;
+        return findBankItem(Objects.requireNonNull(rs2Item).name, true, amount) != null;
     }
 
     /**

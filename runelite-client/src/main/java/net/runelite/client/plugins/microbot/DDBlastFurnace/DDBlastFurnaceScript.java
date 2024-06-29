@@ -223,6 +223,7 @@ public class DDBlastFurnaceScript extends Script {
                         sleepUntilTrue(() -> !Rs2Player.isMoving(), 600, 5000);
                         if(Rs2GameObject.get("Trapdoor") != null){
                             Rs2GameObject.interact(ObjectID.TRAPDOOR_16168, "Travel");
+                            sleep(1200,2400);
                             sleepUntilTrue(()->!Rs2Player.isMoving(), 500, 5000);
                         }else{
                             sleep(5000);
@@ -525,7 +526,7 @@ public class DDBlastFurnaceScript extends Script {
             Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
         }
         if(stamPot_inBank < (config.blastFurnaceRestockAmount()/350)){
-            Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getPrimaryOre(), (config.blastFurnaceRestockAmount()/350) - stamPot_inBank);
+            Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/350) - stamPot_inBank);
         }
         if(ironBar_inBank < (config.blastFurnaceRestockAmount())){
             Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.blastFurnaceRestockAmount() - ironBar_inBank);
