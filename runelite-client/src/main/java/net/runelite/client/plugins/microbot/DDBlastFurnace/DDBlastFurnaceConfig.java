@@ -98,13 +98,23 @@ public interface DDBlastFurnaceConfig extends Config {
     String RestockSection = "How much to restock";
 
     @ConfigItem(
-            keyName = "Restock Amount",
-            name = "Restock Amount",
-            description = "Restock Amount",
+            keyName = "BF_Restock Amount",
+            name = "BF_Restock Amount",
+            description = "BF_Restock Amount",
             position = 1,
             section = RestockSection
     )
     default int blastFurnaceRestockAmount() {return 50;}
+
+    @ConfigItem(
+            keyName = "DM_Restock Amount",
+            name = "DM_Restock Amount",
+            description = "DM_Restock Amount",
+            position = 2,
+            section = RestockSection
+    )
+    default int dartMakerRestockAmount() {return 500;}
+
 
 }
 
