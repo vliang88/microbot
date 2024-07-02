@@ -3,6 +3,8 @@ package net.runelite.client.plugins.microbot.DDBlastFurnace;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.client.plugins.grandexchange.GrandExchangeClient;
+import net.runelite.client.plugins.grandexchange.GrandExchangePlugin;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
@@ -34,7 +36,9 @@ public class DDBlastFurnaceScript extends Script {
         state_sellProducts,
         state_buySupplies,
         state_decideScriptToRun,
-        state_DM_init
+        state_DM_init,
+        state_DM_bank,
+        state_DM_makeDarts
     }
     public static double version = 2.0;
     public int coinID = 995;
@@ -54,6 +58,8 @@ public class DDBlastFurnaceScript extends Script {
     public static long timeStart =0;
     public WorldPoint dispenserWP = new WorldPoint(1939,4963,0);
     public WorldArea blastFurnanceWA= new WorldArea(1935,4956,20,20,0);
+    public WorldPoint anvilWP = new WorldPoint(3188,3427,0);
+    public WorldPoint bankWP = new WorldPoint(3185,3436,0);
     public static int barsSmelted = 0;
     public static int barPrice= 0;
     public static int primOrePrice = 0;
@@ -71,6 +77,7 @@ public class DDBlastFurnaceScript extends Script {
     int secOre_inBank;
     int stamPot_inBank;
     int ironBar_inBank;
+    int varrockTele_inBank;
 
     public void getPrices(DDBlastFurnaceConfig config){
         barPrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getBarId(), true);
@@ -105,7 +112,7 @@ public class DDBlastFurnaceScript extends Script {
                     case state_BF_init:
                         if (!Rs2Walker.isInArea(dispenserWP, 30)) {
                             Rs2Walker.walkTo(dispenserWP);
-                            sleepUntilTrue(() -> !Rs2Player.isWalking(), 100, 5000);
+                            sleepUntilTrue(() -> !Rs2Player.isMoving(), 100, 5000);
                             break;
                         }
                         currentState = blastFurnanceStates.state_BF_doBank;
@@ -210,6 +217,7 @@ public class DDBlastFurnaceScript extends Script {
                                 break;
                             case 1:
                                 currentState = blastFurnanceStates.state_BF_goToKeldagrim;
+                                //currentState = blastFurnanceStates.state_DM_init; //For testing
                                 break;
                             case 2:
                                 currentState = blastFurnanceStates.state_DM_init;
@@ -226,11 +234,76 @@ public class DDBlastFurnaceScript extends Script {
                             sleep(1200,2400);
                             sleepUntilTrue(()->!Rs2Player.isMoving(), 500, 5000);
                         }else{
-                            sleep(5000);
+                            sleep(10000);
                             sleepUntilTrue(()->!Rs2Player.isMoving(), 500, 5000);
                             currentState = blastFurnanceStates.state_BF_init;
                         }
                         break;
+                    case state_DM_init:
+                        if(Rs2Player.getWorldLocation().distanceTo(bankWP) > 5) {
+                            Rs2Walker.walkTo(bankWP);
+                        }else{
+                            Rs2Bank.openBank();
+                            currentState = blastFurnanceStates.state_DM_bank;
+                        }
+                        break;
+                    case state_DM_bank:
+                        if(Rs2Bank.isOpen()){
+                            if(Rs2Inventory.get("hammer") == null){
+                                Rs2Bank.withdrawOne("hammer");
+                            }
+                            Rs2Bank.depositAllExcept("hammer");
+                            //check to see if all our GE offers are complete
+                            GrandExchangeOffer[] offers = Microbot.getClient().getGrandExchangeOffers();
+                            for (GrandExchangeOffer offer : offers) {
+                                if (offer.getItemId() == ItemID.ADAMANTITE_ORE || offer.getItemId() == ItemID.COAL) {
+                                    if (offer.getState() == GrandExchangeOfferState.BOUGHT) {
+                                        Rs2Bank.depositAll();
+                                        currentState = blastFurnanceStates.state_goToGe;
+                                        return;
+                                    }
+                                }
+                            }
+                            if(!Rs2Bank.hasBankItem(ItemID.IRON_BAR,10)) {
+                                Rs2Bank.depositAll();
+                                currentState = blastFurnanceStates.state_goToGe;
+                                break;
+                            }
+                            Rs2Bank.withdrawAll(ItemID.IRON_BAR);
+                            sleepUntilTrue(Rs2Inventory::isFull,600,1200);
+                            Rs2Bank.closeBank();
+                            currentState = blastFurnanceStates.state_DM_makeDarts;
+                        }else{
+                            Rs2Bank.openBank();
+                        }
+                        break;
+                    case state_DM_makeDarts:
+
+                        if(Microbot.isGainingExp ||
+                                Rs2Player.isAnimating() || Rs2Player.isMoving()){
+                            return;
+                        }
+                        if(Rs2GameObject.get("anvil") == null){
+                            Rs2Walker.walkTo(anvilWP);
+                        }else{
+                            if(Rs2Inventory.contains(ItemID.IRON_BAR)) {
+                                Rs2GameObject.interact("Anvil", "Smith");
+                                sleep(600, 1200);
+                                sleepUntil(() -> Rs2Widget.hasWidget("What would you like"));
+                                Rs2Widget.clickWidget(20447261);
+                                sleepUntil(() -> Microbot.isGainingExp);
+                            }
+                        }
+                        if(!Rs2Inventory.contains(ItemID.IRON_BAR)) {
+                            if (Rs2GameObject.get("bank") == null) {
+                                Rs2Walker.walkTo(bankWP);
+                            } else {
+                                if(!Rs2Bank.isOpen())
+                                    Rs2Bank.openBank();
+                            }
+                            currentState = blastFurnanceStates.state_DM_bank;
+                        }
+
                     default:
                         break;
                 }
@@ -247,7 +320,7 @@ public class DDBlastFurnaceScript extends Script {
             stamPot_inBank >= (config.blastFurnaceRestockAmount()/350)) {
             return 1;
         }
-        if(ironBar_inBank >= (config.blastFurnaceRestockAmount())){
+        if(ironBar_inBank >= (config.dartMakerRestockAmount())){
             return 2;
         }
         return 0;
@@ -510,6 +583,11 @@ public class DDBlastFurnaceScript extends Script {
         }else {
             ironBar_inBank = 0;
         }
+        if(Rs2Bank.hasItem("Varrock teleport")) {
+            varrockTele_inBank = Rs2Bank.findBankItem("Varrock teleport").quantity;
+        }else {
+            varrockTele_inBank = 0;
+        }
         Rs2Bank.closeBank();
         sleepUntilTrue(()->!Rs2Bank.isOpen(),100, 5000);
         return true;
@@ -525,11 +603,14 @@ public class DDBlastFurnaceScript extends Script {
         if(secOre_inBank < (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired())){
             Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
         }
-        if(stamPot_inBank < (config.blastFurnaceRestockAmount()/350)){
+        if(stamPot_inBank < (config.blastFurnaceRestockAmount()/200)){
             Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/350) - stamPot_inBank);
         }
-        if(ironBar_inBank < (config.blastFurnaceRestockAmount())){
-            Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.blastFurnaceRestockAmount() - ironBar_inBank);
+        if(ironBar_inBank < (config.dartMakerRestockAmount())){
+            Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.dartMakerRestockAmount() - ironBar_inBank);
+        }
+        if(varrockTele_inBank < 2){
+            Rs2GrandExchange.buyItemAbove5Percent("Varrock teleport", 10);
         }
         sleepUntilTrue(Rs2GrandExchange::hasBoughtOffer, 100, 5000);
         Rs2GrandExchange.collect(true);
