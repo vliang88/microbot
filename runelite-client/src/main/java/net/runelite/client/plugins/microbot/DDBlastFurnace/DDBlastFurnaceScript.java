@@ -90,6 +90,7 @@ public class DDBlastFurnaceScript extends Script {
         secOre = config.BlastFurnaceBarSelection().getSecondaryOre();
         coalAmountPerPrim = config.BlastFurnaceBarSelection().getCoalRequired();
         barName = config.BlastFurnaceBarSelection().getName();
+        Microbot.getClient().setCameraPitchTarget(383);
     }
 
     public boolean run(DDBlastFurnaceConfig config) {
@@ -105,6 +106,8 @@ public class DDBlastFurnaceScript extends Script {
                 if(Microbot.getClient().getEnergy() > 20){
                     Rs2Player.toggleRunEnergy(true);
                 }
+                Microbot.getClient().setCameraPitchTarget(383);
+
                 //if(!Rs2Walker.isInArea(dispenserWP, 30)){
                 //    currentState = blastFurnanceStates.state_init;
                 //}
@@ -172,6 +175,9 @@ public class DDBlastFurnaceScript extends Script {
                         break;
                     case state_goToGe:
                         if (!Rs2Walker.isInArea(BankLocation.GRAND_EXCHANGE.getWorldPoint(), 5)) {
+                            if(!Rs2Player.isMoving()){
+                                Rs2Walker.restartPathfinding(Rs2Player.getWorldLocation(),new WorldPoint(3161, 3490, 0));
+                            }
                             Rs2Walker.walkTo(new WorldPoint(3161, 3490, 0));
                             break;
                         } else {
@@ -186,6 +192,8 @@ public class DDBlastFurnaceScript extends Script {
                                 currentState = blastFurnanceStates.state_buySupplies;
                                 break;
                             }
+                        }else{
+                            Rs2Bank.depositAll();
                         }
                         if (Rs2GrandExchange.openExchange()) {
                             if (Rs2GrandExchange.sellInventory()) {
@@ -258,6 +266,7 @@ public class DDBlastFurnaceScript extends Script {
                             for (GrandExchangeOffer offer : offers) {
                                 if (offer.getItemId() == ItemID.ADAMANTITE_ORE || offer.getItemId() == ItemID.COAL) {
                                     if (offer.getState() == GrandExchangeOfferState.BOUGHT) {
+                                        updateInBankCount(config);
                                         Rs2Bank.depositAll();
                                         currentState = blastFurnanceStates.state_goToGe;
                                         return;
@@ -541,6 +550,7 @@ public class DDBlastFurnaceScript extends Script {
         if(!Rs2Bank.isOpen()){
             Rs2Bank.openBank();
         }
+        Rs2Bank.depositAll();
         Rs2Bank.setWithdrawAsNote();
         sleep(600,1200);
         //For blast furnace assets
