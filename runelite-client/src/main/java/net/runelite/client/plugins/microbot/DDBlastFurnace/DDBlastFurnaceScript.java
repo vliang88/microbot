@@ -103,7 +103,7 @@ public class DDBlastFurnaceScript extends Script {
             //if(!masterOnSwitch) return;
             try {
                 //Make sure run is always on as long as we have 20 run energy
-                if(Microbot.getClient().getEnergy() > 20){
+                if(Microbot.getClient().getEnergy() > 20 && Rs2Player.isMoving()){
                     Rs2Player.toggleRunEnergy(true);
                 }
                 Microbot.getClient().setCameraPitchTarget(383);
@@ -192,8 +192,6 @@ public class DDBlastFurnaceScript extends Script {
                                 currentState = blastFurnanceStates.state_buySupplies;
                                 break;
                             }
-                        }else{
-                            Rs2Bank.depositAll();
                         }
                         if (Rs2GrandExchange.openExchange()) {
                             if (Rs2GrandExchange.sellInventory()) {
@@ -257,22 +255,32 @@ public class DDBlastFurnaceScript extends Script {
                         break;
                     case state_DM_bank:
                         if(Rs2Bank.isOpen()){
-                            if(Rs2Inventory.get("hammer") == null){
-                                Rs2Bank.withdrawOne("hammer");
-                            }
-                            Rs2Bank.depositAllExcept("hammer");
                             //check to see if all our GE offers are complete
                             GrandExchangeOffer[] offers = Microbot.getClient().getGrandExchangeOffers();
                             for (GrandExchangeOffer offer : offers) {
                                 if (offer.getItemId() == ItemID.ADAMANTITE_ORE || offer.getItemId() == ItemID.COAL) {
                                     if (offer.getState() == GrandExchangeOfferState.BOUGHT) {
-                                        updateInBankCount(config);
-                                        Rs2Bank.depositAll();
+                                        //updateInBankCount(config);
+                                        //Rs2Bank.depositAll();
+                                        while(!Rs2Inventory.isEmpty()){
+                                            Rs2Bank.depositAll();
+                                        }
+                                        //if(Rs2Inventory.isEmpty()) {
                                         currentState = blastFurnanceStates.state_goToGe;
                                         return;
+                                        //}else{
+                                        //    Rs2Bank.depositAll();
+                                        //    currentState = blastFurnanceStates.state_goToGe;
+                                        //    return;
+                                        //}
                                     }
                                 }
                             }
+                            if(Rs2Inventory.get("hammer") == null){
+                                Rs2Bank.withdrawOne("hammer");
+                            }
+                            Rs2Bank.depositAllExcept("hammer");
+
                             if(!Rs2Bank.hasBankItem(ItemID.IRON_BAR,10)) {
                                 Rs2Bank.depositAll();
                                 currentState = blastFurnanceStates.state_goToGe;
