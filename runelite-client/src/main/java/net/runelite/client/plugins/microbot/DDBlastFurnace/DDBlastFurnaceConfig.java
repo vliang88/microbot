@@ -116,5 +116,32 @@ public interface DDBlastFurnaceConfig extends Config {
     default int dartMakerRestockAmount() {return 500;}
 
 
+    /////////Restock Section/////////////
+    @ConfigSection(
+            name = "Money Muling",
+            description = "Money Muling",
+            position = 5,
+            closedByDefault = false
+    )
+    String MulingSection = "Money Laundry";
+
+    @ConfigItem(
+            keyName = "Muling Host",
+            name = "Muling Host",
+            description = "Muling Host",
+            position = 1,
+            section = MulingSection
+    )
+    default String mulingHost() {return "xGrace";}
+
+    @ConfigItem(
+            keyName = "Muling Amount",
+            name = "Muling Amount",
+            description = "Muling Amount",
+            position = 2,
+            section = MulingSection
+    )
+    default int mulingAmt() {return 10000000;}
+
 }
 

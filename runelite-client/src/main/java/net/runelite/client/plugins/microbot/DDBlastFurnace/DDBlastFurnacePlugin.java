@@ -76,8 +76,7 @@ public class DDBlastFurnacePlugin extends Plugin {
             overlayManager.add(DDBlastFurnaceOverlay);
         }
         clientThread.invoke(()-> {
-            DDBlastFurnaceScript.getPrices(config);
-            DDBlastFurnaceScript.getOreNames(config);
+            DDBlastFurnaceScript.scriptInit(config);
         });
         DDBlastFurnaceScript.run(config);
     }
