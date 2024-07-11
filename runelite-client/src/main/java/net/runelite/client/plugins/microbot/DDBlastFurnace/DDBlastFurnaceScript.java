@@ -3,10 +3,15 @@ package net.runelite.client.plugins.microbot.DDBlastFurnace;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.widgets.Widget;
+import net.runelite.client.plugins.friendlist.FriendListConfig;
+import net.runelite.client.plugins.friendlist.FriendListPlugin;
 import net.runelite.client.plugins.grandexchange.GrandExchangeClient;
 import net.runelite.client.plugins.grandexchange.GrandExchangePlugin;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
+import net.runelite.client.plugins.microbot.globval.WidgetIndices;
+import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
@@ -15,8 +20,10 @@ import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.tabs.Rs2Tab;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
+import net.runelite.client.plugins.skillcalculator.skills.MagicAction;
 
 import java.awt.event.KeyEvent;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +33,7 @@ import static net.runelite.client.plugins.microbot.util.Global.sleepUntilTrue;
 
 public class DDBlastFurnaceScript extends Script {
     enum blastFurnanceStates{
+        state_addFriend,
         state_BF_init,
         state_BF_doBank,
         state_BF_payForemanAndCoffer,
@@ -73,23 +81,26 @@ public class DDBlastFurnaceScript extends Script {
     public static int stamPotSipPrice = 0;
     public static int cofferAndForemanAndSipsSpent = 0;
     public static boolean masterOnSwitch = true;
-    public static blastFurnanceStates currentState = blastFurnanceStates.state_BF_init;
+    public static blastFurnanceStates currentState = blastFurnanceStates.state_decideScriptToRun;
     public static String primOre;
     public static String secOre;
     public static String barName;
     public static int coalAmountPerPrim;
+    public int muleHostWorld = 0;
+    public int blastFurnaceWorld = 0;
 
     int primOre_inBank;
     int secOre_inBank;
     int stamPot_inBank;
     int ironBar_inBank;
     int varrockTele_inBank;
+    int houseTele_inBank;
     int coins_inBank;
 
-    public void scriptInit(DDBlastFurnaceConfig config){
+    public void scriptInit(DDBlastFurnaceConfig config) {
         barPrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getBarId(), true);
-        primOrePrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getPrimaryId(),true);
-        secOrePrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getSecondaryId(),true) * config.BlastFurnaceBarSelection().getCoalRequired();
+        primOrePrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getPrimaryId(), true);
+        secOrePrice = Microbot.getItemManager().getItemPriceWithSource(config.BlastFurnaceBarSelection().getSecondaryId(), true) * config.BlastFurnaceBarSelection().getCoalRequired();
         stamPotSipPrice = Microbot.getItemManager().getItemPriceWithSource(stamPot1DoseId, true);
         primOre = config.BlastFurnaceBarSelection().getPrimaryOre();
         secOre = config.BlastFurnaceBarSelection().getSecondaryOre();
@@ -117,6 +128,11 @@ public class DDBlastFurnaceScript extends Script {
                 //    currentState = blastFurnanceStates.state_init;
                 //}
                 switch (currentState) {
+                    case state_addFriend:
+                        if(addFriend(config)) {
+                            currentState = blastFurnanceStates.state_BF_init;
+                        }
+                        break;
                     case state_BF_init:
                         if (!Rs2Walker.isInArea(dispenserWP, 30)) {
                             Rs2Walker.walkTo(dispenserWP);
@@ -224,7 +240,8 @@ public class DDBlastFurnaceScript extends Script {
                         switch (scriptDecided) {
                             case 0:
                                 //We dont have supplies for either.
-                                Microbot.pauseAllScripts = true;
+                                //Microbot.pauseAllScripts = true;
+                                currentState = blastFurnanceStates.state_buySupplies;
                                 break;
                             case 1: //muling time
                                 currentState = blastFurnanceStates.state_muling_goToHouse;
@@ -319,8 +336,8 @@ public class DDBlastFurnaceScript extends Script {
                     case state_muling_goToHouse:
                         Rs2Bank.openBank();
                         if (Rs2Bank.isOpen()) {
-                            while (!Rs2Inventory.hasItemAmount("Coins", config.mulingAmt())) {
-                                Rs2Bank.withdrawX("Coins", coins_inBank - config.mulingAmt());
+                            while(Rs2Bank.hasBankItem("Coins", config.mulingAmt())) {
+                                Rs2Bank.withdrawX("Coins", coins_inBank - config.mulingAmt() + 1);
                                 sleep(600, 1200);
                             }
                             while (!Rs2Inventory.contains("Teleport to house")) {
@@ -334,7 +351,7 @@ public class DDBlastFurnaceScript extends Script {
                             Rs2Bank.closeBank();
                             sleepUntilTrue(() -> !Rs2Bank.isOpen(), 600, 5000);
                             while (Rs2Inventory.contains("Teleport to house")) {
-                                Rs2Inventory.interact("Teleport to house", "break");
+                                Rs2Inventory.interact("Teleport to house", "Outside");
                                 sleep(2000);
                                 sleepUntilTrue(() -> !Rs2Player.isAnimating(), 100, 5000);
                             }
@@ -343,23 +360,69 @@ public class DDBlastFurnaceScript extends Script {
                         break;
 
                     case state_muling_changeWorld:
-                        if (Microbot.getClient().getWorld() != 330) {
-                            Microbot.hopToWorld(330);
+                        if (Microbot.getClient().getWorld() != muleHostWorld) {
+                            blastFurnaceWorld = Microbot.getClient().getWorld();
+                            Microbot.hopToWorld(muleHostWorld);
                         } else {
                             currentState = blastFurnanceStates.state_muling_enterHouse;
                         }
                         break;
 
                     case state_muling_enterHouse:
+                        if(Microbot.getClient().getWorld() != muleHostWorld){
+                            //Case where the world is full.
+                            currentState = blastFurnanceStates.state_muling_changeWorld;
+                            break;
+                        }
                         if (Rs2GameObject.exists(POHId)){
                             if (!Rs2Widget.hasWidget("Enter Name")) {
                                 Rs2GameObject.interact(POHId, "Friend's House");
+                                sleep(600,1200);
                             } else {
                                 Rs2Keyboard.typeString(config.mulingHost());
+                                sleep(600,2400);
                                 Rs2Keyboard.enter();
+                                sleep(600,2400);
                             }
                         }else{
                             currentState = blastFurnanceStates.state_muling_depositTip;
+                            //Microbot.pauseAllScripts = true;
+                        }
+                        break;
+
+                    case state_muling_depositTip:
+                        if(Rs2GameObject.exists(29146)){
+                            if(Rs2Inventory.contains("Coins")){
+                                Rs2GameObject.interact("Tip Jar");
+                                sleep(600,1200);
+                                sleepUntilTrue(()->Rs2Widget.hasWidget("Donate how much?"),100, 5000);
+                                Rs2Keyboard.typeString(Integer.toString(Rs2Inventory.get("Coins").quantity));
+                                Rs2Keyboard.enter();
+                                sleep(600,1200);
+                                sleepUntilTrue(()->Rs2Widget.hasWidget("Donate it"),100, 5000);
+                                Rs2Widget.clickWidget("Donate it");
+                                sleep(600,1200);
+                            }
+                        }else{
+                            currentState = blastFurnanceStates.state_muling_enterHouse;
+                        }
+                        if(!Rs2Inventory.contains("Coins")){
+                            currentState = blastFurnanceStates.state_muling_gotoGe;
+                        }
+                        break;
+                    case state_muling_gotoGe:
+                        Rs2Tab.switchToInventoryTab();
+                        if(Microbot.getClient().getWorld() != blastFurnaceWorld){
+                            //Case where the world is full.
+                            Microbot.hopToWorld(blastFurnaceWorld);
+                            break;
+                        }
+                        if(Rs2Inventory.contains("Varrock teleport")){
+                            Rs2Inventory.interact("Varrock teleport", "break");
+                            sleep(2000);
+                            sleepUntilTrue(() -> !Rs2Player.isAnimating(),100,5000);
+                        }else{
+                            currentState = blastFurnanceStates.state_goToGe;
                         }
                         break;
 
@@ -374,12 +437,17 @@ public class DDBlastFurnaceScript extends Script {
     }
 
     int decideScript(DDBlastFurnaceConfig config){
-        if(coins_inBank >= config.mulingAmt()){
-            return 1;
+        FriendContainer friendContainer = Microbot.getClient().getFriendContainer();
+        Friend hostFriend = friendContainer.findByName(config.mulingHost());
+        if(hostFriend != null && hostFriend.getWorld() > 0) {
+            if (coins_inBank >= config.mulingAmt()) {
+                muleHostWorld = hostFriend.getWorld();
+                return 1;
+            }
         }
         if(primOre_inBank >= config.blastFurnaceRestockAmount() &&
             secOre_inBank >= (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) &&
-            stamPot_inBank >= (config.blastFurnaceRestockAmount()/350)) {
+            stamPot_inBank >= (config.blastFurnaceRestockAmount()/200)) {
             return 2;
         }
         if(ironBar_inBank >= (config.dartMakerRestockAmount())){
@@ -651,6 +719,11 @@ public class DDBlastFurnaceScript extends Script {
         }else {
             varrockTele_inBank = 0;
         }
+        if(Rs2Bank.hasItem("Teleport to house")) {
+            houseTele_inBank = Rs2Bank.findBankItem("Teleport to house").quantity;
+        }else {
+            houseTele_inBank = 0;
+        }
         if(Rs2Bank.hasItem("Coins")) {
             coins_inBank = Rs2Bank.findBankItem("Coins").quantity;
         }else {
@@ -672,13 +745,16 @@ public class DDBlastFurnaceScript extends Script {
             Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
         }
         if(stamPot_inBank < (config.blastFurnaceRestockAmount()/200)){
-            Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/350) - stamPot_inBank);
+            Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/250) - stamPot_inBank);
         }
         if(ironBar_inBank < (config.dartMakerRestockAmount())){
-            Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.dartMakerRestockAmount() - ironBar_inBank);
+            //Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.dartMakerRestockAmount() - ironBar_inBank);
         }
-        if(varrockTele_inBank < 2){
+        if(varrockTele_inBank < 10){
             Rs2GrandExchange.buyItemAbove5Percent("Varrock teleport", 10);
+        }
+        if(houseTele_inBank < 10){
+            Rs2GrandExchange.buyItemAbove5Percent("Teleport to house", 10);
         }
         sleepUntilTrue(Rs2GrandExchange::hasBoughtOffer, 100, 5000);
         Rs2GrandExchange.collect(true);
@@ -694,9 +770,38 @@ public class DDBlastFurnaceScript extends Script {
         return true;
     }
 
+    boolean addFriend(DDBlastFurnaceConfig config){
+        //Check if muling host is in our friends list to see if hes online when we need to drop
+        if(Rs2Tab.getCurrentTab() == InterfaceTab.FRIENDS) {
+            if (!Microbot.getClient().isFriended(config.mulingHost(), false)) {
+                //Add the friend
+                Widget addFriend = Rs2Widget.getWidget(28114959);
+                if(addFriend.getText().equalsIgnoreCase("Add Friend")){
+                    Microbot.getMouse().click(addFriend.getBounds());
+                    sleep(600, 1200);
+                    sleepUntilTrue(() -> Rs2Widget.hasWidget("Enter name of friend to add to list"), 250, 5000);
+                }else{
+                    return false;
+                }
+                if (Rs2Widget.hasWidget("Enter name of friend to add to list")) {
+                    Rs2Keyboard.typeString(config.mulingHost());
+                    Rs2Keyboard.enter();
+                }
+                Rs2Tab.switchToInventoryTab();
+                return true;
+            }else {
+                Rs2Tab.switchToInventoryTab();
+                return true;
+            }
+        }else{
+            Rs2Tab.switchToFriendsTab();
+            return false;
+        }
+    }
+
     @Override
     public void shutdown() {
-        currentState = blastFurnanceStates.state_BF_init;
+        currentState = blastFurnanceStates.state_addFriend;
         super.shutdown();
     }
 }
