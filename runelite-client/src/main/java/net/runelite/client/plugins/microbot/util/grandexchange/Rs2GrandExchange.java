@@ -220,9 +220,10 @@ public class Rs2GrandExchange {
         Widget pricePerItemButton5Percent = getPricePerItemButton_Plus5Percent();
 
         if (pricePerItemButton5Percent != null) {
-            int basePrice = getItemPrice();
+            //int basePrice = getItemPrice();
             Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
-            sleepUntil(() -> hasOfferPriceChanged(basePrice), 1600);
+            //sleepUntil(() -> hasOfferPriceChanged(basePrice), 1600);
+            sleep(600,1200);
             confirm();
             return true;
         } else {

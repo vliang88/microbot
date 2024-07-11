@@ -81,7 +81,7 @@ public class DDBlastFurnaceScript extends Script {
     public static int stamPotSipPrice = 0;
     public static int cofferAndForemanAndSipsSpent = 0;
     public static boolean masterOnSwitch = true;
-    public static blastFurnanceStates currentState = blastFurnanceStates.state_decideScriptToRun;
+    public static blastFurnanceStates currentState = blastFurnanceStates.state_addFriend;
     public static String primOre;
     public static String secOre;
     public static String barName;
@@ -124,13 +124,14 @@ public class DDBlastFurnaceScript extends Script {
                 }
                 Microbot.getClient().setCameraPitchTarget(383);
 
-                //if(!Rs2Walker.isInArea(dispenserWP, 30)){
-                //    currentState = blastFurnanceStates.state_init;
-                //}
                 switch (currentState) {
                     case state_addFriend:
                         if(addFriend(config)) {
-                            currentState = blastFurnanceStates.state_BF_init;
+                            if(Rs2Walker.isInArea(dispenserWP, 30)) {
+                                currentState = blastFurnanceStates.state_BF_init;
+                            }else{
+                                currentState = blastFurnanceStates.state_goToGe;
+                            }
                         }
                         break;
                     case state_BF_init:
@@ -240,15 +241,15 @@ public class DDBlastFurnaceScript extends Script {
                         switch (scriptDecided) {
                             case 0:
                                 //We dont have supplies for either.
-                                //Microbot.pauseAllScripts = true;
-                                currentState = blastFurnanceStates.state_buySupplies;
+                                Rs2Player.logout();
+                                Microbot.pauseAllScripts = true;
+                                //currentState = blastFurnanceStates.state_buySupplies;
                                 break;
                             case 1: //muling time
                                 currentState = blastFurnanceStates.state_muling_goToHouse;
                                 break;
                             case 2:
                                 currentState = blastFurnanceStates.state_BF_goToKeldagrim;
-                                //currentState = blastFurnanceStates.state_DM_init; //For testing
                                 break;
                             case 3:
                                 currentState = blastFurnanceStates.state_DM_init;
@@ -531,7 +532,7 @@ public class DDBlastFurnaceScript extends Script {
             //See if we are using stam pots. If yes do appropriate thing
             if(config.useStaminaPot() && needtoDrinkStamPot()){
                 Rs2Bank.withdrawOne("Stamina potion", 600);
-                //sleepUntil(()-> Rs2Inventory.contains("Stamina potion"));
+                sleepUntil(()-> Rs2Inventory.contains("Stamina potion"));
                 if(Rs2Inventory.get("Stamina") != null) {
                     if (Rs2Inventory.interact("Stamina", "Drink")) {
                         cofferAndForemanAndSipsSpent += stamPotSipPrice;
@@ -745,10 +746,10 @@ public class DDBlastFurnaceScript extends Script {
             Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
         }
         if(stamPot_inBank < (config.blastFurnaceRestockAmount()/200)){
-            Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/250) - stamPot_inBank);
+            Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/200) - stamPot_inBank);
         }
         if(ironBar_inBank < (config.dartMakerRestockAmount())){
-            //Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.dartMakerRestockAmount() - ironBar_inBank);
+            Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.dartMakerRestockAmount() - ironBar_inBank);
         }
         if(varrockTele_inBank < 10){
             Rs2GrandExchange.buyItemAbove5Percent("Varrock teleport", 10);
