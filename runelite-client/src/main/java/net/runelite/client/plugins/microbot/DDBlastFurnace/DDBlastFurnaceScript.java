@@ -739,22 +739,22 @@ public class DDBlastFurnaceScript extends Script {
         if(!Rs2GrandExchange.isOpen()) {
             Rs2GrandExchange.openExchange();
         }
-        if(primOre_inBank < config.blastFurnaceRestockAmount()) {
+        if(primOre_inBank < config.blastFurnaceRestockAmount() && !itemAlreadyTradingInGE(config.BlastFurnaceBarSelection().getPrimaryId())) {
             Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getPrimaryOre(), config.blastFurnaceRestockAmount() - primOre_inBank);
         }
-        if(secOre_inBank < (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired())){
+        if(secOre_inBank < (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) && !itemAlreadyTradingInGE(ItemID.COAL)){
             Rs2GrandExchange.buyItemAbove5Percent(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
         }
-        if(stamPot_inBank < (config.blastFurnaceRestockAmount()/200)){
+        if(stamPot_inBank < (config.blastFurnaceRestockAmount()/200)  && !itemAlreadyTradingInGE(ItemID.STAMINA_POTION4)){
             Rs2GrandExchange.buyItemAbove5Percent("Stamina potion(4)", (config.blastFurnaceRestockAmount()/200) - stamPot_inBank);
         }
-        if(ironBar_inBank < (config.dartMakerRestockAmount())){
+        if(ironBar_inBank < (config.dartMakerRestockAmount()) && !itemAlreadyTradingInGE(ItemID.IRON_BAR)){
             Rs2GrandExchange.buyItemAbove5Percent("Iron bar", config.dartMakerRestockAmount() - ironBar_inBank);
         }
-        if(varrockTele_inBank < 10){
+        if(varrockTele_inBank < 10  && !itemAlreadyTradingInGE(ItemID.VARROCK_TELEPORT)){
             Rs2GrandExchange.buyItemAbove5Percent("Varrock teleport", 10);
         }
-        if(houseTele_inBank < 10){
+        if(houseTele_inBank < 10  && !itemAlreadyTradingInGE(ItemID.TELEPORT_TO_HOUSE)){
             Rs2GrandExchange.buyItemAbove5Percent("Teleport to house", 10);
         }
         sleepUntilTrue(Rs2GrandExchange::hasBoughtOffer, 100, 5000);
@@ -769,6 +769,15 @@ public class DDBlastFurnaceScript extends Script {
                 return false;
         }
         return true;
+    }
+
+    boolean itemAlreadyTradingInGE(int itemId){
+        GrandExchangeOffer[] offers = Microbot.getClient().getGrandExchangeOffers();
+        for (GrandExchangeOffer offer : offers){
+            if(offer.getItemId() == itemId)
+                return true;
+        }
+        return false;
     }
 
     boolean addFriend(DDBlastFurnaceConfig config){
