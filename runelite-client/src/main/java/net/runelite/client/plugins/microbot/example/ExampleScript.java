@@ -33,6 +33,7 @@ import net.runelite.client.plugins.skillcalculator.skills.MagicAction;
 import net.runelite.http.api.ge.GrandExchangeTrade;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.awt.event.KeyEvent;
 import java.util.concurrent.TimeUnit;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
@@ -187,7 +188,9 @@ public class ExampleScript extends Script {
                                 break;
                             }
                             if(Rs2Widget.hasWidget("Okay, here's 10,000 coins.")){
-                                Rs2Widget.clickWidget("Okay, here's 10,000 coins.");
+                                sleep(250,500);
+                                //Rs2Widget.clickWidget("Okay, here's 10,000 coins.");
+                                Rs2Keyboard.typeString("1");
                                 sleep(250,500);
                                 break;
                             }
@@ -262,6 +265,23 @@ public class ExampleScript extends Script {
                             Rs2GrandExchange.openExchange();
                             break;
                         }else{
+                            if(!Rs2GrandExchange.isAllSlotsEmpty()){
+                                for (int i = 0; i < 8; i++) {
+                                    GrandExchangeSlots slot = GrandExchangeSlots.values()[i];
+                                    if (!Rs2GrandExchange.isSlotAvailable(slot)) {
+                                        //Abort Trade
+                                        Widget parent = Rs2GrandExchange.getSlot(slot);
+                                        Microbot.getMouse().click(parent.getBounds());
+                                        sleep(600,1200);
+                                        Rs2Widget.clickChildWidget(30474263,0);
+                                        sleep(600,1200);
+                                        Rs2Widget.clickWidget(465,4);
+                                        sleep(600,1200);
+                                    }
+                                }
+                                Rs2GrandExchange.collectToInventory();
+                                break;
+                            }
                             for (Rs2Item item : Rs2Inventory.items()) {
                                 if (!item.isTradeable()) continue;
                                 if(item.getName().contains("plank")) {
@@ -308,13 +328,15 @@ public class ExampleScript extends Script {
                             currentState = plankMakerStates.state_pm_init;
                         }else{
                             Rs2Bank.openBank();
-                            if(!Rs2Bank.hasBankItem("Mahogany logs", 28) ||
+                            Rs2Bank.depositAllExcept( "Law rune", "Dust rune");
+                            if(!Rs2Bank.hasBankItem("Mahogany logs", 28) &&
                                     !Rs2Bank.hasBankItem("Oak logs", 28)){
                                 if(geIsComplete()){
                                     Rs2GrandExchange.collectToBank();
                                 }
                                 break;
                             }
+                            Rs2Bank.closeBank();
                             if(Rs2Magic.canCast(MagicAction.LUMBRIDGE_TELEPORT)){
                                 Rs2Magic.cast(MagicAction.LUMBRIDGE_TELEPORT);
                                 sleep(600,1200);
@@ -403,7 +425,13 @@ public class ExampleScript extends Script {
             Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
             sleep(600,1200);
         }
-        return Rs2GrandExchange.getItemPrice();
+        int price = Rs2GrandExchange.getItemPrice();
+        pricePerItemButton5Percent = Rs2GrandExchange.getPricePerItemButton_Minus_5Percent();
+        if (pricePerItemButton5Percent != null) {
+            Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
+            sleep(600,1200);
+        }
+        return price;
     }
 
     boolean itemAlreadyTradingInGE(int itemId){
