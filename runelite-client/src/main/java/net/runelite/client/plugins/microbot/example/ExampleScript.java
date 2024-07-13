@@ -1,15 +1,27 @@
 package net.runelite.client.plugins.microbot.example;
 
+import net.runelite.api.GrandExchangeOffer;
+import net.runelite.api.GrandExchangeOfferState;
 import net.runelite.api.ItemID;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.widgets.Widget;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.plugins.grandexchange.GrandExchangeClient;
+import net.runelite.client.plugins.grandexchange.GrandExchangePlugin;
+import net.runelite.client.plugins.grandexchange.GrandExchangeSearchMode;
 import net.runelite.client.plugins.microbot.DDBlastFurnace.DDBlastFurnaceScript;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
+import net.runelite.client.plugins.microbot.globval.WidgetIndices;
 import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
+import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
+import net.runelite.client.plugins.microbot.util.grandexchange.GrandExchangeSlots;
+import net.runelite.client.plugins.microbot.util.grandexchange.Rs2GrandExchange;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2Item;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.magic.Rs2Magic;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
@@ -18,8 +30,13 @@ import net.runelite.client.plugins.microbot.util.tabs.Rs2Tab;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 import net.runelite.client.plugins.skillcalculator.skills.MagicAction;
+import net.runelite.http.api.ge.GrandExchangeTrade;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.concurrent.TimeUnit;
+
+import static net.runelite.client.plugins.microbot.util.Global.sleep;
+import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
 
 
 public class ExampleScript extends Script {
@@ -29,9 +46,14 @@ public class ExampleScript extends Script {
         state_pm_teleportToHouse,
         state_pm_makePlanks,
         state_pm_teleportToBank,
+        state_goToGe,
+        state_withdrawPlanks,
+        state_sellPlanks,
+        state_buySupplies,
+        state_goToLumby,
     }
 
-    public static ExampleScript.plankMakerStates currentState = ExampleScript.plankMakerStates.state_pm_init;
+    public static plankMakerStates currentState = plankMakerStates.state_goToGe;
     public static double version = 1.0;
     public static WorldPoint lumbyWP = new WorldPoint(3222,3218, 0);
 
@@ -73,6 +95,16 @@ public class ExampleScript extends Script {
                             sleepUntil(() -> Rs2Bank.isOpen());
                             break;
                         }else{
+                            if((!Rs2Bank.hasBankItem("Mahogany logs", 28) &&
+                                    !Rs2Bank.hasBankItem("Oak logs", 28)) ||
+                                    !Rs2Bank.hasBankItem("Coins", 50000)){
+                                Rs2Bank.depositAllExcept( "Law rune", "Dust rune");
+                                Rs2Bank.withdrawOne("Fire rune");
+                                Rs2Bank.closeBank();
+                                Microbot.hopToWorld(386);
+                                currentState = plankMakerStates.state_goToGe;
+                                break;
+                            }
                             if(Rs2Inventory.hasItem("plank")) {
                                 Rs2Bank.depositAllExcept("Coins", "Law rune", "Dust rune");
                                 break;
@@ -95,7 +127,11 @@ public class ExampleScript extends Script {
                                 break;
                             }
                             if(!Rs2Inventory.isFull()){
-                                Rs2Bank.withdrawAll(ItemID.MAHOGANY_LOGS);
+                                if(Rs2Bank.hasBankItem("Mahogany logs", 28)) {
+                                    Rs2Bank.withdrawAll(ItemID.MAHOGANY_LOGS);
+                                }else{
+                                    Rs2Bank.withdrawAll(ItemID.OAK_LOGS);
+                                }
                             }else{
                                 Rs2Bank.closeBank();
                                 currentState = plankMakerStates.state_pm_teleportToHouse;
@@ -186,10 +222,120 @@ public class ExampleScript extends Script {
                             currentState = plankMakerStates.state_pm_doBank;
                         }
                         break;
+                    case state_goToGe:
+                        if (Microbot.getClient().getWorld() != 386) {
+                            Microbot.hopToWorld(386);
+                            break;
+                        }
+                        if (!Rs2Walker.isInArea(BankLocation.GRAND_EXCHANGE.getWorldPoint(), 5)) {
+                            if (Rs2Magic.canCast(MagicAction.VARROCK_TELEPORT)) {
+                                Rs2Magic.cast(MagicAction.VARROCK_TELEPORT);
+                                sleep(250,500);
+                                sleepUntil(()-> Rs2Player.getWorldLocation().distanceTo2D(lumbyWP) > 5);
+                            } else {
+                                if (!Rs2Player.isMoving()) {
+                                    Rs2Walker.restartPathfinding(Rs2Player.getWorldLocation(), new WorldPoint(3161, 3490, 0));
+                                }
+                                Rs2Walker.walkTo(new WorldPoint(3161, 3490, 0));
+                                break;
+                            }
+                        }else{
+                            currentState = plankMakerStates.state_withdrawPlanks;
+                        }
+                        break;
+                    case state_withdrawPlanks:
+                        if(!Rs2Bank.isOpen()){
+                            Rs2Bank.openBank();
+                            break;
+                        }else{
+                            Rs2Bank.setWithdrawAsNote();
+                            Rs2Bank.withdrawAll("plank");
+                            Rs2Bank.withdrawAll("Coins");
+                            if(!Rs2Bank.hasBankItem("plank")){
+                                Rs2Bank.closeBank();
+                                currentState = plankMakerStates.state_sellPlanks;
+                            }
+                        }
+                        break;
+                    case state_sellPlanks:
+                        if(!Rs2GrandExchange.isOpen()){
+                            Rs2GrandExchange.openExchange();
+                            break;
+                        }else{
+                            for (Rs2Item item : Rs2Inventory.items()) {
+                                if (!item.isTradeable()) continue;
+                                if(item.getName().contains("plank")) {
+                                    Rs2GrandExchange.sellItemUnder5Percent(item.getName());
+                                }
+                            }
+                            sleep(10000,15000);
+                            Rs2GrandExchange.collectToInventory();
+                            currentState = plankMakerStates.state_buySupplies;
+
+                        }
+                        break;
+                    case state_buySupplies:
+                        if(!Rs2GrandExchange.isOpen()){
+                            Rs2GrandExchange.openExchange();
+                            break;
+                        }else{
+                            //calculate how much of mahogany we can buy with our moneys
+                            int mahoganyLogToBuy = calculateLogsToBuy("mahogany", Rs2Inventory.get("Coins").quantity);
+                            if(mahoganyLogToBuy != 0 && !itemAlreadyTradingInGE(ItemID.MAHOGANY_LOGS)) {
+                                Rs2GrandExchange.buyItemAbove5Percent("Mahogany logs", mahoganyLogToBuy);
+                                sleep(5000, 6000);
+                                Rs2GrandExchange.collectToBank();
+                            }
+                            if(mahoganyLogToBuy == 11000 || itemAlreadyTradingInGE(ItemID.MAHOGANY_LOGS)) {
+                                int oakLogToBuy = 0;
+                                if(mahoganyLogToBuy == 11000) {
+                                    oakLogToBuy = calculateLogsToBuy("oak", Rs2Inventory.get("Coins").quantity - 17050000);
+                                }
+                                if(itemAlreadyTradingInGE(ItemID.MAHOGANY_LOGS)) {
+                                    oakLogToBuy = calculateLogsToBuy("oak", Rs2Inventory.get("Coins").quantity);
+                                }
+                                if (oakLogToBuy != 0 && !itemAlreadyTradingInGE(ItemID.OAK_LOGS)){
+                                    Rs2GrandExchange.buyItemAbove5Percent("Oak logs", oakLogToBuy);
+                                    sleep(5000, 6000);
+                                    Rs2GrandExchange.collectToBank();
+                                }
+                            }
+                            currentState = plankMakerStates.state_goToLumby;
+                        }
+                        break;
+                    case state_goToLumby:
+                        if (Rs2Player.getWorldLocation().distanceTo2D(lumbyWP) < 5) {
+                            currentState = plankMakerStates.state_pm_init;
+                        }else{
+                            Rs2Bank.openBank();
+                            if(!Rs2Bank.hasBankItem("Mahogany logs", 28) ||
+                                    !Rs2Bank.hasBankItem("Oak logs", 28)){
+                                if(geIsComplete()){
+                                    Rs2GrandExchange.collectToBank();
+                                }
+                                break;
+                            }
+                            if(Rs2Magic.canCast(MagicAction.LUMBRIDGE_TELEPORT)){
+                                Rs2Magic.cast(MagicAction.LUMBRIDGE_TELEPORT);
+                                sleep(600,1200);
+                                sleepUntil(()-> Rs2Player.getWorldLocation().distanceTo2D(BankLocation.GRAND_EXCHANGE.getWorldPoint()) > 10);
+                            }else{
+                                Rs2Bank.openBank();
+                                if(!Rs2Inventory.hasItemAmount(ItemID.DUST_RUNE,3)){
+                                    Rs2Bank.withdrawX(ItemID.DUST_RUNE, 3 - Rs2Inventory.count(ItemID.DUST_RUNE));
+                                }
+                                if(!Rs2Inventory.contains(ItemID.LAW_RUNE)){
+                                    Rs2Bank.withdrawOne(ItemID.LAW_RUNE);
+                                }
+                                Rs2Bank.closeBank();
+                            }
+                        }
+                        break;
                     default:
                         sleep(600);
                         break;
                     }
+
 
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
@@ -200,7 +346,81 @@ public class ExampleScript extends Script {
 
     @Override
     public void shutdown() {
-        currentState = plankMakerStates.state_pm_init;
+        currentState = plankMakerStates.state_goToGe;
         super.shutdown();
+    }
+
+    int calculateLogsToBuy(String logs, int totalGP){
+        int logPrice, sawmillPrice, butlerFee, logAmtToBuy = 0;
+        switch(logs){
+            case "oak":
+                logPrice = getGEPrice("Oak logs");
+                sawmillPrice = 250;
+                butlerFee = 50;
+                logAmtToBuy = (totalGP / (logPrice + sawmillPrice + butlerFee));
+                if (logAmtToBuy > 15000) logAmtToBuy = 15000;
+                break;
+            case "teak":
+                logPrice = getGEPrice("Teak logs");
+                sawmillPrice = 500;
+                butlerFee = 50;
+                logAmtToBuy = (totalGP / (logPrice + sawmillPrice + butlerFee));
+                if (logAmtToBuy > 13000) logAmtToBuy = 13000;
+                break;
+            case "mahogany":
+                logPrice = getGEPrice("Mahogany logs");
+                sawmillPrice = 1500;
+                butlerFee = 50;
+                logAmtToBuy = (totalGP / (logPrice + sawmillPrice + butlerFee));
+                if (logAmtToBuy > 11000) logAmtToBuy = 11000;
+                break;
+            default:
+                break;
+        }
+        return logAmtToBuy;
+    }
+
+    int getGEPrice(String itemName) {
+        Pair<GrandExchangeSlots, Integer> slot = Rs2GrandExchange.getAvailableSlot();
+        Widget buyOffer = Rs2GrandExchange.getOfferBuyButton(slot.getLeft());
+        if (buyOffer == null) return 0;
+
+        Microbot.getMouse().click(buyOffer.getBounds());
+        sleepUntil(Rs2GrandExchange::isOfferTextVisible);
+        sleepUntil(() -> Rs2Widget.hasWidget("What would you like to buy?"));
+        if (Rs2Widget.hasWidget("What would you like to buy?"))
+            Rs2Keyboard.typeString(itemName);
+        sleepUntil(() -> Rs2Widget.hasWidget(itemName)); //GE Search Results
+        sleep(1200, 1600);
+        Pair<Widget, Integer> itemResult = Rs2GrandExchange.getSearchResultWidget(itemName);
+        if (itemResult != null) {
+            Rs2Widget.clickWidgetFast(itemResult.getLeft(), itemResult.getRight(), 1);
+            sleepUntil(() -> !Rs2Widget.hasWidget("Choose an item..."));
+            sleep(600, 1600);
+        }
+        Widget pricePerItemButton5Percent = Rs2GrandExchange.getPricePerItemButton_Plus5Percent();
+        if (pricePerItemButton5Percent != null) {
+            Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
+            sleep(600,1200);
+        }
+        return Rs2GrandExchange.getItemPrice();
+    }
+
+    boolean itemAlreadyTradingInGE(int itemId){
+        GrandExchangeOffer[] offers = Microbot.getClient().getGrandExchangeOffers();
+        for (GrandExchangeOffer offer : offers){
+            if(offer.getItemId() == itemId)
+                return true;
+        }
+        return false;
+    }
+
+    boolean geIsComplete(){
+        GrandExchangeOffer[] offers = Microbot.getClient().getGrandExchangeOffers();
+        for (GrandExchangeOffer offer : offers){
+            if(offer.getState() == GrandExchangeOfferState.BOUGHT)
+                return true;
+        }
+        return false;
     }
 }
