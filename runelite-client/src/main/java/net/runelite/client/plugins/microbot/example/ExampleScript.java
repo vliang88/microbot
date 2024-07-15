@@ -116,8 +116,8 @@ public class ExampleScript extends Script {
                         } else {
                             if (((!Rs2Bank.hasBankItem("Mahogany logs", 28) &&
                                     !Rs2Bank.hasBankItem("Oak logs", 28)) ||
-                                    !Rs2Bank.hasBankItem("Dust rune", 50) ||
-                                    !Rs2Bank.hasBankItem("Law rune", 50) ||
+                                    (!Rs2Bank.hasBankItem("Dust rune", 50) && Rs2Inventory.get("Dust rune").quantity < 50) ||
+                                    (!Rs2Bank.hasBankItem("Law rune", 50) && Rs2Inventory.get("Law rune").quantity < 50) ||
                                     !Rs2Bank.hasBankItem("Coins", 50000))
                             && !Rs2Inventory.isFull()) {
                                 Rs2Bank.depositAllExcept("Law rune", "Dust rune");
@@ -202,7 +202,7 @@ public class ExampleScript extends Script {
                             }
                             if (Rs2Widget.hasWidget("Click here to continue")) {
                                 Rs2Keyboard.keyPress(KeyEvent.VK_SPACE);
-                                sleep(250, 500);
+                                sleep(600, 1200);
                                 break;
                             }
                             if (Rs2Widget.hasWidget("Yes")) {
@@ -211,7 +211,7 @@ public class ExampleScript extends Script {
                                 break;
                             }
                             if (Rs2Widget.hasWidget("Okay, here's 10,000 coins.")) {
-                                sleep(250, 500);
+                                //sleep(250, 500);
                                 //Rs2Widget.clickWidget("Okay, here's 10,000 coins.");
                                 Rs2Keyboard.typeString("1");
                                 sleep(250, 500);
@@ -374,8 +374,7 @@ public class ExampleScript extends Script {
                             currentState = plankMakerStates.state_pm_init;
                         } else {
                             Rs2Bank.openBank();
-                            //Rs2Bank.depositAllExcept("Law rune", "Dust rune");
-                            Rs2Bank.depositAll();
+                            Rs2Bank.depositAllExcept("Law rune", "Dust rune");
                             if (!Rs2Bank.hasBankItem("Mahogany logs", 28) &&
                                     !Rs2Bank.hasBankItem("Oak logs", 28)) {
                                 if (geIsComplete()) {
@@ -383,11 +382,18 @@ public class ExampleScript extends Script {
                                 }
                                 break;
                             }
-                            //See if we going to muling before we close bank
-                            //Check if money required for all the logs and mule off rest
-                            //moneyRequired = (Rs2Bank.count("Mahogany logs") * 1550) + (Rs2Bank.count("Oak logs") * 300) + 5000000;
+
+                            Rs2Bank.withdrawX(ItemID.DUST_RUNE, 3);
+                            Rs2Bank.withdrawX(ItemID.LAW_RUNE, 1);
+                            FriendContainer friendContainer = Microbot.getClient().getFriendContainer();
+                            Friend hostFriend = friendContainer.findByName(config.mulingHost());
+                            if(hostFriend != null && hostFriend.getWorld() > 0) {
+                                muleHostWorld = hostFriend.getWorld();
+                            }else{
+                                muleHostWorld = 0;
+                            }
                             moneyRequired = 25300000;
-                            if (Rs2Bank.count("Coins") > moneyRequired) {
+                            if ((Rs2Bank.count("Coins") > moneyRequired) && muleHostWorld != 0) {
                                 currentState = plankMakerStates.state_muling_goToHouse;
                                 break;
                             }
@@ -426,11 +432,7 @@ public class ExampleScript extends Script {
                                 Rs2Magic.cast(MagicAction.TELEPORT_TO_HOUSE);
                                 sleep(600, 1200);
                                 sleepUntilTrue(() -> !Rs2Player.isAnimating(), 100, 5000);
-                                FriendContainer friendContainer = Microbot.getClient().getFriendContainer();
-                                Friend hostFriend = friendContainer.findByName(config.mulingHost());
-                                if(hostFriend != null && hostFriend.getWorld() > 0) {
-                                    muleHostWorld = hostFriend.getWorld();
-                                }
+
                                 currentState = plankMakerStates.state_muling_changeWorld;
                             }
                         }
