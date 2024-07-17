@@ -2,6 +2,7 @@ package net.runelite.client.plugins.microbot.example;
 
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
@@ -26,8 +27,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.TimeUnit;
 
+import static net.runelite.client.plugins.microbot.Microbot.log;
 import static net.runelite.client.plugins.microbot.util.Global.*;
-import static net.runelite.client.plugins.microbot.util.Global.sleepUntilTrue;
+import static net.runelite.client.plugins.microbot.util.Global.sleep;
 
 
 public class ExampleScript extends Script {
@@ -72,17 +74,26 @@ public class ExampleScript extends Script {
                 switch(currentState) {
                     case state_addFriend:
                         if (addFriend(config)) {
+
                             if (Rs2Walker.isInArea(BankLocation.GRAND_EXCHANGE.getWorldPoint(), 30)) {
                                 currentState = plankMakerStates.state_goToGe;
                             } else {
                                 currentState = plankMakerStates.state_pm_init;
                             }
+
+
                         }
+
+                        //int price = getGrandExchangeActivelyTradedPrice("Oak logs");
+
                         break;
                     case state_pm_init:
                         if (Rs2Player.getWorldLocation().distanceTo2D(lumbyWP) < 5) {
-                            if (Microbot.getClient().getWorld() != 539) {
-                                Microbot.hopToWorld(539);
+                            if (Microbot.getClient().getWorld() != config.PVPWorldSelection()) {
+                                Microbot.hopToWorld(config.PVPWorldSelection());
+                                if (Rs2Widget.hasWidget("continue")) {
+                                    Rs2Widget.clickWidget("continue");
+                                }
                                 if (Rs2Widget.hasWidget("Switch World")) {
                                     Rs2Widget.clickWidget("Switch World");
                                 }
@@ -91,10 +102,10 @@ public class ExampleScript extends Script {
                                 currentState = plankMakerStates.state_pm_doBank;
                             }
                         } else {
-                            if (Microbot.getClient().getWorld() != 539) {
+                            if (Microbot.getClient().getWorld() != config.PVPWorldSelection()) {
                                 Rs2Walker.walkTo(lumbyWP);
                             } else {
-                                Microbot.hopToWorld(330);
+                                Microbot.hopToWorld(config.normalWorldSelection());
                             }
                         }
                         break;
@@ -218,15 +229,16 @@ public class ExampleScript extends Script {
                                 sleep(250, 500);
                                 break;
                             }
-                            if (Rs2Inventory.hasItem(logToUse)) {
+                            if (Rs2Tab.getCurrentTab() != InterfaceTab.INVENTORY) {
+                                Rs2Tab.switchToInventoryTab();
+                                break;
+                            }
+                            if (Rs2Inventory.isFull()) {
                                 Rs2Inventory.interact(logToUse, "Use");
                                 sleep(600, 1200);
                                 Rs2Npc.interact("Demon butler", "Use");
                                 sleep(250, 500);
                                 break;
-                            }
-                            if (Rs2Tab.getCurrentTab() != InterfaceTab.INVENTORY) {
-                                Rs2Tab.switchToInventoryTab();
                             }
                         }
                         break;
@@ -307,7 +319,7 @@ public class ExampleScript extends Script {
                             for (Rs2Item item : Rs2Inventory.items()) {
                                 if (!item.isTradeable()) continue;
                                 if (item.getName().contains("plank")) {
-                                    Rs2GrandExchange.sellItemUnder5Percent(item.getName());
+                                    Rs2GrandExchange.sellItemGePrice(item.getName());
                                 }
                             }
                             sleep(10000, 15000);
@@ -323,21 +335,21 @@ public class ExampleScript extends Script {
                         } else {
                             if (Rs2Inventory.get("Law rune") != null) {
                                 if (Rs2Inventory.get("Law rune").quantity < 2000)
-                                    Rs2GrandExchange.buyItemAbove5Percent("Law rune", 2000 - Rs2Inventory.get("Law rune").quantity);
+                                    Rs2GrandExchange.buyItemGePrice("Law rune", 2000 - Rs2Inventory.get("Law rune").quantity);
                             }else{
-                                Rs2GrandExchange.buyItemAbove5Percent("Law rune", 2000);
+                                Rs2GrandExchange.buyItemGePrice("Law rune", 2000 - Rs2Inventory.get("Law rune").quantity);
                             }
                             if (Rs2Inventory.get("Dust rune") != null) {
                                 if (Rs2Inventory.get("Dust rune").quantity < 6000)
-                                    Rs2GrandExchange.buyItem("Dust rune", 15, 6000 - Rs2Inventory.get("Dust rune").quantity);
+                                    Rs2GrandExchange.buyItemGePrice("Dust rune",  6000 - Rs2Inventory.get("Dust rune").quantity);
                             }else{
-                                Rs2GrandExchange.buyItemAbove5Percent("Law rune", 2000);
+                                Rs2GrandExchange.buyItemGePrice("Dust rune", 2000);
                             }
                             if (Rs2Inventory.get("Fire rune") != null) {
                                 if (Rs2Inventory.get("Fire rune").quantity < 1000)
-                                    Rs2GrandExchange.buyItemAbove5Percent("Fire rune", 1000 - Rs2Inventory.get("Fire rune").quantity);
+                                    Rs2GrandExchange.buyItemGePrice("Fire rune", 1000 - Rs2Inventory.get("Fire rune").quantity);
                             }else{
-                                Rs2GrandExchange.buyItemAbove5Percent("Fire rune", 2000);
+                                Rs2GrandExchange.buyItemGePrice("Fire rune", 2000);
                             }
                             Rs2GrandExchange.collectToInventory();
                             //calculate how much of mahogany we can buy with our moneys
@@ -347,7 +359,7 @@ public class ExampleScript extends Script {
                                 if(Rs2Inventory.get("Mahogany logs") != null){
                                     mahoganyLogInvent = Rs2Inventory.get("Mahogany logs").quantity;
                                 }
-                                Rs2GrandExchange.buyItemAbove5Percent("Mahogany logs", mahoganyLogToBuy - mahoganyLogInvent);
+                                Rs2GrandExchange.buyItemGePrice("Mahogany logs", mahoganyLogToBuy - mahoganyLogInvent);
                                 sleep(5000, 6000);
                                 Rs2GrandExchange.collectToBank();
                             }
@@ -364,7 +376,7 @@ public class ExampleScript extends Script {
                                     if(Rs2Inventory.get("Oak logs") != null){
                                         oakLogInvent = Rs2Inventory.get("Oak logs").quantity;
                                     }
-                                    Rs2GrandExchange.buyItemAbove5Percent("Oak logs", oakLogToBuy - oakLogInvent);
+                                    Rs2GrandExchange.buyItemGePrice("Oak logs", oakLogToBuy - oakLogInvent);
                                     sleep(5000, 6000);
                                     Rs2GrandExchange.collectToBank();
                                 }
@@ -377,7 +389,7 @@ public class ExampleScript extends Script {
                             currentState = plankMakerStates.state_pm_init;
                         } else {
                             Rs2Bank.openBank();
-                            Rs2Bank.depositAllExcept("Law rune", "Dust rune");
+                            Rs2Bank.depositAll();//Except("Law rune", "Dust rune");
                             if (!Rs2Bank.hasBankItem("Mahogany logs", 28) &&
                                     !Rs2Bank.hasBankItem("Oak logs", 28)) {
                                 if (geIsComplete()) {
@@ -525,21 +537,21 @@ public class ExampleScript extends Script {
         int logPrice, sawmillPrice, butlerFee, logAmtToBuy = 0;
         switch(logs){
             case "oak":
-                logPrice = getGEPrice("Oak logs");
+                logPrice = Rs2GrandExchange.getGrandExchangeActivelyTradedPrice("Oak logs");
                 sawmillPrice = 250;
                 butlerFee = 50;
                 logAmtToBuy = (totalGP / (logPrice + sawmillPrice + butlerFee));
                 if (logAmtToBuy > 15000) logAmtToBuy = 15000;
                 break;
             case "teak":
-                logPrice = getGEPrice("Teak logs");
+                logPrice = Rs2GrandExchange.getGrandExchangeActivelyTradedPrice("Teak logs");
                 sawmillPrice = 500;
                 butlerFee = 50;
                 logAmtToBuy = (totalGP / (logPrice + sawmillPrice + butlerFee));
                 if (logAmtToBuy > 13000) logAmtToBuy = 13000;
                 break;
             case "mahogany":
-                logPrice = getGEPrice("Mahogany logs");
+                logPrice = Rs2GrandExchange.getGrandExchangeActivelyTradedPrice("Mahogany logs");
                 sawmillPrice = 1500;
                 butlerFee = 50;
                 logAmtToBuy = (totalGP / (logPrice + sawmillPrice + butlerFee));
@@ -569,18 +581,20 @@ public class ExampleScript extends Script {
             sleepUntil(() -> !Rs2Widget.hasWidget("Choose an item..."));
             sleep(600, 1600);
         }
+        /*
         Widget pricePerItemButton5Percent = Rs2GrandExchange.getPricePerItemButton_Plus5Percent();
         if (pricePerItemButton5Percent != null) {
             Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
             sleep(600,1200);
         }
-        int price = Rs2GrandExchange.getItemPrice();
+        */
+        /*
         Widget pricePerItemButtonGuidePrice = Rs2GrandExchange.getPricePerItemButton_GuidePrice();
         if (pricePerItemButtonGuidePrice != null) {
             Microbot.getMouse().click(pricePerItemButtonGuidePrice.getBounds());
             sleep(600,1200);
-        }
-        return price;
+        }*/
+        return Rs2GrandExchange.getGrandExchangeActivelyTradedPrice(itemName);
     }
 
     boolean itemAlreadyTradingInGE(int itemId){

@@ -10,7 +10,7 @@ public interface ExampleConfig extends Config {
     @ConfigSection(
             name = "Money Muling",
             description = "Money Muling",
-            position = 5,
+            position = 1,
             closedByDefault = false
     )
     String MulingSection = "Money Laundry";
@@ -23,4 +23,30 @@ public interface ExampleConfig extends Config {
             section = MulingSection
     )
     default String mulingHost() {return "xGrace";}
+
+    @ConfigSection(
+            name = "World selection",
+            description = "World selection - must be PVP",
+            position = 2,
+            closedByDefault = false
+    )
+    String WorldSection = "World selection";
+
+    @ConfigItem(
+            keyName = "PVP World Number",
+            name = "PVP World Number",
+            description = "PVP World Number",
+            position = 1,
+            section = WorldSection
+    )
+    default int PVPWorldSelection() {return 579;}
+
+    @ConfigItem(
+            keyName = "Normal World Number",
+            name = "Normal World Number",
+            description = "Normal World Number",
+            position = 2,
+            section = WorldSection
+    )
+    default int normalWorldSelection() {return 330;}
 }
