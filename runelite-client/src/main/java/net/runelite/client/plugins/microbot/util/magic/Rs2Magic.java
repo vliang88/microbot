@@ -31,9 +31,7 @@ public class Rs2Magic {
             sleep(150, 300);
         }
         Widget widget = Arrays.stream(Rs2Widget.getWidget(14286851).getStaticChildren()).filter(x -> x.getSpriteId() == magicSpell.getSprite()).findFirst().orElse(null);
-        if (widget == null) {
-            widget = Arrays.stream(Rs2Widget.getWidget(14286851).getStaticChildren()).filter(x -> x.getId() == magicSpell.getWidgetId()).findFirst().orElse(null);
-        }
+
         return widget != null;
     }
 

@@ -207,7 +207,7 @@ public class ExampleScript extends Script {
                                 sleep(600, 1200);
                                 break;
                             }
-                            if (Rs2Widget.hasWidget("Yes")) {
+                            if (Rs2Widget.hasWidget("Convert the planks")) {
                                 Rs2Widget.clickWidget("Yes");
                                 sleep(250, 500);
                                 break;
@@ -229,16 +229,16 @@ public class ExampleScript extends Script {
                                 sleep(250, 500);
                                 break;
                             }
-                            if (Rs2Tab.getCurrentTab() != InterfaceTab.INVENTORY) {
-                                Rs2Tab.switchToInventoryTab();
-                                break;
-                            }
+                            //Should get here when there is no talking
+                            Rs2Tab.switchToInventoryTab();
                             if (Rs2Inventory.isFull()) {
                                 Rs2Inventory.interact(logToUse, "Use");
                                 sleep(600, 1200);
                                 Rs2Npc.interact("Demon butler", "Use");
                                 sleep(250, 500);
                                 break;
+                            }else{
+                                currentState = plankMakerStates.state_pm_teleportToBank;
                             }
                         }
                         break;
