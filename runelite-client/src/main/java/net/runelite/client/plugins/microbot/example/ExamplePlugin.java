@@ -2,15 +2,22 @@ package net.runelite.client.plugins.microbot.example;
 
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameTick;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.microbot.agility.models.AgilityObstacleModel;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2PrayerEnum;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
 import java.awt.*;
+
+import static net.runelite.api.ObjectID.*;
 
 @PluginDescriptor(
         name = PluginDescriptor.Default + "Example",
@@ -48,18 +55,16 @@ public class ExamplePlugin extends Plugin {
         exampleScript.shutdown();
         overlayManager.remove(exampleOverlay);
     }
-    int ticks = 10;
+
     @Subscribe
-    public void onGameTick(GameTick tick)
-    {
-        //System.out.println(getName().chars().mapToObj(i -> (char)(i + 3)).map(String::valueOf).collect(Collectors.joining()));
-
-        if (ticks > 0) {
-            ticks--;
-        } else {
-            ticks = 10;
+    public void onChatMessage(ChatMessage event) {
+        if (event.getMessage().contains("a Wilderness agility ticket") ||
+                event.getMessage().contains("complete one full lap")) {
+            ExampleScript.dispenserTagged = true;
         }
-
+        if(event.getMessage().contains("slip and fall")){
+            //ExampleScript.inPit = true;
+        }
     }
 
 }
