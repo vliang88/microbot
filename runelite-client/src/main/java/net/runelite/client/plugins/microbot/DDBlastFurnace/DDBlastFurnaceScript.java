@@ -75,10 +75,13 @@ public class DDBlastFurnaceScript extends Script {
     public WorldPoint anvilWP = new WorldPoint(3188,3427,0);
     public WorldPoint bankWP = new WorldPoint(3185,3436,0);
     public static int barsSmelted = 0;
+    public static int dartsMade = 0;
     public static int barPrice= 0;
     public static int primOrePrice = 0;
     public static int secOrePrice = 0;
     public static int stamPotSipPrice = 0;
+    public static int ironBarPrice = 0;
+    public static int ironDartTipPrice = 0;
     public static int cofferAndForemanAndSipsSpent = 0;
     public static boolean masterOnSwitch = true;
     public static blastFurnanceStates currentState = blastFurnanceStates.state_addFriend;
@@ -106,6 +109,8 @@ public class DDBlastFurnaceScript extends Script {
         secOre = config.BlastFurnaceBarSelection().getSecondaryOre();
         coalAmountPerPrim = config.BlastFurnaceBarSelection().getCoalRequired();
         barName = config.BlastFurnaceBarSelection().getName();
+        ironBarPrice = Microbot.getItemManager().getItemPriceWithSource(ItemID.IRON_BAR, true);
+        ironDartTipPrice = Microbot.getItemManager().getItemPriceWithSource(ItemID.IRON_DART_TIP, true);
         Microbot.getClient().setCameraPitchTarget(383);
     }
 
@@ -184,12 +189,12 @@ public class DDBlastFurnaceScript extends Script {
                             if (Math.random() > 0.25) {
                                 Rs2Walker.walkMiniMap(dispenserWP);
                             }
-                            sleepUntil(this::dispenserHasBar);
+                            sleepUntilTrue(() -> dispenserHasBar(config.BlastFurnaceBarSelection().getVarbit()) , 100, 25000);
                             grabBarsFromDispenser(config.useIceGlove(), config.BlastFurnaceBarSelection().getVarbit());
 
                         }
                         //Corner case where we didnt get the bar for some odd reason
-                        if (dispenserHasBar() && !Rs2Inventory.isFull()) {
+                        if (!Rs2Inventory.isFull()) {
                             grabBarsFromDispenser(config.useIceGlove(), config.BlastFurnaceBarSelection().getVarbit());
                         }
                         placeConveyerCnt = 0;
@@ -281,6 +286,8 @@ public class DDBlastFurnaceScript extends Script {
                         break;
                     case state_DM_bank:
                         if (Rs2Bank.isOpen()) {
+                            if(Rs2Inventory.contains(ItemID.IRON_DART_TIP))
+                                dartsMade += Rs2Inventory.get(ItemID.IRON_DART_TIP).quantity;
                             //check to see if all our GE offers are complete
                             if (geIsComplete()) {
                                 while (!Rs2Inventory.isEmpty()) {
@@ -639,8 +646,9 @@ public class DDBlastFurnaceScript extends Script {
         sleep(600,1000);
         sleepUntilTrue(() -> placeConveyerCnt == 2, 100, 5000);
     }
-    boolean dispenserHasBar(){
+    boolean dispenserHasBar(int barVarbit){
         return (Microbot.getVarbitValue(Varbits.BAR_DISPENSER) >= 2);
+        //return Microbot.getVarbitValue(barVarbit) > 0;
     }
     void grabBarsFromDispenser(boolean useIceGlove, int barVarbit){
         if(!useIceGlove && Microbot.getVarbitValue(Varbits.BAR_DISPENSER) != 3){
@@ -662,7 +670,7 @@ public class DDBlastFurnaceScript extends Script {
                     barsSmelted += Microbot.getVarbitValue(barVarbit);
                     Rs2Keyboard.keyPress(KeyEvent.VK_SPACE);
                 }
-                //sleepUntil(Rs2Inventory::isFull);
+                sleepUntil(Rs2Inventory::isFull);
             }
             sleep(600, 750);
         }
