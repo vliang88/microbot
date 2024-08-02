@@ -49,15 +49,7 @@ public class DDBlastFurnaceOverlay extends OverlayPanel {
                     .build());
 
             panelComponent.getChildren().add(LineComponent.builder()
-                    .left("Bars Per Hour: "+ ((DDBlastFurnaceScript.barsSmelted * 3600000L)/timeRanMs))
-                    .build());
-
-            panelComponent.getChildren().add(LineComponent.builder()
                     .left("Dart Tips Made: "+DDBlastFurnaceScript.dartsMade)
-                    .build());
-
-            panelComponent.getChildren().add(LineComponent.builder()
-                    .left("Dart Tips Per Hour: "+ ((DDBlastFurnaceScript.dartsMade * 3600000L)/timeRanMs))
                     .build());
 
             int profit = ((DDBlastFurnaceScript.barsSmelted*

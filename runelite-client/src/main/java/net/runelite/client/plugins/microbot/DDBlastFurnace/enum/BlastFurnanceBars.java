@@ -8,14 +8,14 @@ import net.runelite.api.Varbits;
 @Getter
 @RequiredArgsConstructor
 public enum BlastFurnanceBars {
-    NONE("None", "None", "None",0, 0, 0, 0, 0, 0),
-    Bronze("Bronze bar", "Copper", "Tin",1, 0, Varbits.BLAST_FURNACE_BRONZE_BAR, ItemID.BRONZE_BAR, ItemID.COPPER_ORE, ItemID.TIN_ORE),
-    Iron("Iron bar", "Iron", "None",15, 0, Varbits.BLAST_FURNACE_IRON_BAR, ItemID.IRON_BAR, ItemID.IRON_ORE, 0),
-    Steel("Steel bar","Iron ore", "Coal", 30, 1, Varbits.BLAST_FURNACE_STEEL_BAR, ItemID.STEEL_BAR, ItemID.IRON_ORE, ItemID.COAL),
-    Gold("Gold bar", "Gold", "None",30, 0, Varbits.BLAST_FURNACE_GOLD_BAR, ItemID.GOLD_BAR, ItemID.GOLD_ORE, 0),
-    Mithril("Mithril bar", "Mithril ore", "Coal",50, 2, Varbits.BLAST_FURNACE_MITHRIL_BAR,ItemID.MITHRIL_BAR, ItemID.MITHRIL_ORE, ItemID.COAL),
-    Adamantite("Adamantite bar", "Adamantite ore", "Coal",70, 3, Varbits.BLAST_FURNACE_ADAMANTITE_BAR, ItemID.ADAMANTITE_BAR, ItemID.ADAMANTITE_ORE, ItemID.COAL),
-    Rune("Rune bar", "Runite ore", "Coal",85, 4, Varbits.BLAST_FURNACE_RUNITE_BAR, ItemID.RUNITE_BAR, ItemID.RUNITE_ORE, ItemID.COAL);
+    NONE("None", "None", "None",0, 0, 0, 0, 0, 0, 0),
+    Bronze("Bronze bar", "Copper", "Tin",1, 0, Varbits.BLAST_FURNACE_BRONZE_BAR, ItemID.BRONZE_BAR, ItemID.COPPER_ORE, ItemID.TIN_ORE,75),
+    Iron("Iron bar", "Iron", "None",15, 0, Varbits.BLAST_FURNACE_IRON_BAR, ItemID.IRON_BAR, ItemID.IRON_ORE, 0,75),
+    Steel("Steel bar","Iron ore", "Coal", 30, 1, Varbits.BLAST_FURNACE_STEEL_BAR, ItemID.STEEL_BAR, ItemID.IRON_ORE, ItemID.COAL,75),
+    Gold("Gold bar", "Gold", "None",30, 0, Varbits.BLAST_FURNACE_GOLD_BAR, ItemID.GOLD_BAR, ItemID.GOLD_ORE, 0,75),
+    Mithril("Mithril bar", "Mithril ore", "Coal",50, 2, Varbits.BLAST_FURNACE_MITHRIL_BAR,ItemID.MITHRIL_BAR, ItemID.MITHRIL_ORE, ItemID.COAL,50),
+    Adamantite("Adamantite bar", "Adamantite ore", "Coal",70, 3, Varbits.BLAST_FURNACE_ADAMANTITE_BAR, ItemID.ADAMANTITE_BAR, ItemID.ADAMANTITE_ORE, ItemID.COAL,50),
+    Rune("Rune bar", "Runite ore", "Coal",85, 4, Varbits.BLAST_FURNACE_RUNITE_BAR, ItemID.RUNITE_BAR, ItemID.RUNITE_ORE, ItemID.COAL,25);
 
     private final String name;
     private final String primaryOre;
@@ -26,4 +26,5 @@ public enum BlastFurnanceBars {
     private final int barId;
     private final int primaryId;
     private final int secondaryId;
+    private final int barsPerStamSip;
 }
