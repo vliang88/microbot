@@ -1,6 +1,7 @@
 package net.runelite.client.plugins.microbot.DDBlastFurnace;
 
 import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.Widget;
@@ -20,12 +21,14 @@ import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.security.Login;
 import net.runelite.client.plugins.microbot.util.tabs.Rs2Tab;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 import net.runelite.client.plugins.skillcalculator.skills.MagicAction;
 
 import java.awt.event.KeyEvent;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntilOnClientThread;
@@ -92,6 +95,11 @@ public class DDBlastFurnaceScript extends Script {
     public static int coalAmountPerPrim;
     public int muleHostWorld = 0;
     public int blastFurnaceWorld = 0;
+    public int primOreLimitMin = 0;
+    public int secOreLimitMin = 0;
+
+    public long afkStartTime = 0;
+    public static long milliSecondTillLogin = 0;
 
     int primOre_inBank;
     int secOre_inBank;
@@ -142,8 +150,8 @@ public class DDBlastFurnaceScript extends Script {
                         }
                         break;
                     case state_BF_init:
-                        if (!Rs2Walker.isInArea(dispenserWP, 30)) {
-                            Rs2Walker.walkTo(dispenserWP);
+                        if (!Rs2Walker.isInArea(BankLocation.BLAST_FURNACE_BANK.getWorldPoint(), 30)) {
+                            Rs2Walker.walkTo(BankLocation.BLAST_FURNACE_BANK.getWorldPoint());
                             sleepUntilTrue(() -> !Rs2Player.isMoving(), 100, 5000);
                             break;
                         }
@@ -256,27 +264,43 @@ public class DDBlastFurnaceScript extends Script {
                                 currentState = blastFurnanceStates.state_muling_goToHouse;
                                 break;
                             case 2:
+                                Rs2Walker.walkTo(3141, 3504, 0);
+                                sleepUntilTrue(() -> !Rs2Player.isMoving(), 600, 5000);
                                 currentState = blastFurnanceStates.state_BF_goToKeldagrim;
                                 break;
                             case 3:
                                 //currentState = blastFurnanceStates.state_DM_init;
+                                blastFurnaceWorld = Microbot.getClient().getWorld();
+                                Rs2Player.logout();
                                 currentState = blastFurnanceStates.state_afk;
+                                afkStartTime = System.currentTimeMillis();
                                 break;
                             default:
                                 break;
                         }
                         break;
                     case state_BF_goToKeldagrim:
-                        Rs2Walker.walkTo(3141, 3504, 0);
-                        sleepUntilTrue(() -> !Rs2Player.isMoving(), 600, 5000);
                         if (Rs2GameObject.get("Trapdoor") != null) {
                             Rs2GameObject.interact(ObjectID.TRAPDOOR_16168, "Travel");
-                            sleep(10000, 15000);
-                            sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
+                            sleep(1000, 1500);
+                            sleepUntilTrue(() -> Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752,6976)) == 0, 500, 5000);
+                            //Rs2GameObject.interact(6977);
+                            //sleep(1000,2000);
+                            //sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
                         } else {
-                            sleep(10000);
-                            sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
-                            currentState = blastFurnanceStates.state_BF_init;
+                            if (Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752, 6976)) == 0) {
+                                if(!Rs2GameObject.exists(6977)){
+                                    Rs2Walker.walkTo(new WorldPoint(2930,10184,0));
+                                    sleep(1000, 2000);
+                                    sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
+                                    currentState = blastFurnanceStates.state_BF_init;
+                                }else {
+                                    Rs2GameObject.interact(6977);
+                                    sleep(1000, 2000);
+                                    sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
+                                    currentState = blastFurnanceStates.state_BF_init;
+                                }
+                            }
                         }
                         break;
                     case state_DM_init:
@@ -438,11 +462,20 @@ public class DDBlastFurnaceScript extends Script {
                         break;
 
                     case state_afk:
-                        if (geIsComplete()) {
-                            currentState = blastFurnanceStates.state_buySupplies;
+                        milliSecondTillLogin = afkStartTime + (Math.max(primOreLimitMin,secOreLimitMin)* 60000L) - System.currentTimeMillis();
+                        System.out.println("milliSecondTillLogin: "+ milliSecondTillLogin);
+                        if ((System.currentTimeMillis() - afkStartTime) > (Math.max(primOreLimitMin,secOreLimitMin)* 60000L)) {
+                            if(Microbot.isLoggedIn()) {
+                                currentState = blastFurnanceStates.state_buySupplies;
+                                break;
+                            }else{
+                                //if (Microbot.getClient().getGameState() == GameState.LOGIN_SCREEN) {
+                                    new Login(blastFurnaceWorld);
+                                //}
+                            }
                             break;
                         }else{
-                            sleep(5000,10000);
+                            sleep(1000,2000);
                         }
                         break;
 
@@ -775,10 +808,10 @@ public class DDBlastFurnaceScript extends Script {
             Rs2GrandExchange.openExchange();
         }
         if(primOre_inBank < config.blastFurnaceRestockAmount() && !itemAlreadyTradingInGE(config.BlastFurnaceBarSelection().getPrimaryId())) {
-            Rs2GrandExchange.buyItemGePrice(config.BlastFurnaceBarSelection().getPrimaryOre(), config.blastFurnaceRestockAmount() - primOre_inBank);
+            primOreLimitMin = Rs2GrandExchange.buyItemGePrice(config.BlastFurnaceBarSelection().getPrimaryOre(), config.blastFurnaceRestockAmount() - primOre_inBank);
         }
         if(secOre_inBank < (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) && !itemAlreadyTradingInGE(ItemID.COAL)){
-            Rs2GrandExchange.buyItemGePrice(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
+            secOreLimitMin = Rs2GrandExchange.buyItemGePrice(config.BlastFurnaceBarSelection().getSecondaryOre(), (config.blastFurnaceRestockAmount()*config.BlastFurnaceBarSelection().getCoalRequired()) - secOre_inBank);
         }
         if(stamPot_inBank < (config.blastFurnaceRestockAmount()/config.BlastFurnaceBarSelection().getBarsPerStamSip())  && !itemAlreadyTradingInGE(ItemID.STAMINA_POTION4)){
             Rs2GrandExchange.buyItemGePrice("Stamina potion(4)", (((config.blastFurnaceRestockAmount()/config.BlastFurnaceBarSelection().getBarsPerStamSip()) - stamPot_inBank)/4)+1);

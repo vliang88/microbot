@@ -33,6 +33,7 @@ public class Rs2GrandExchange {
     public static final int GRAND_EXCHANGE_OFFER_CONTAINER_QTY_X = 30474265;
     public static final int GRAND_EXCHANGE_OFFER_CONTAINER_QTY_1 = 30474265;
     public static final int COLLECT_BUTTON = 30474246;
+    public static int limitMin = 0;
 
     /**
      * close the grand exchange interface
@@ -640,7 +641,7 @@ public class Rs2GrandExchange {
                         break;
                     }
                 }
-                log(" " + subTokens[0]);
+                log("Price" + subTokens[0]);
                 //return NumberFormat.getNumberInstance(java.util.Locale.US).parse(subTokens[0]);
                 return Integer.parseInt(subTokens[0].replaceAll(",", ""));
             }
@@ -648,18 +649,50 @@ public class Rs2GrandExchange {
         return 0;
     }
 
-    public static boolean buyItemGePrice(String itemName ,int quantity) {
+    public static int getGrandExchangeLimitTimer(String itemName){
+        String activelyTradedPrice_string;
+        String[] tokens;
+        String[] subTokens = new String[0];
+        Widget geTradingBox = Rs2Widget.findWidget(itemName);
+        if(geTradingBox != null){
+            if(geTradingBox.getText().contains(itemName)) {
+                activelyTradedPrice_string = Rs2Widget.getWidget(465, 26).getText();
+                //Split the string to get the price
+                //Hmm a non-renewable energy source!<br>Buy limit: 13,000 (0:51) / Actively traded price: 127
+                tokens = activelyTradedPrice_string.split(" ");
+                int i;
+                for(i = 0; i < tokens.length; i ++){
+                    if(tokens[i].contains("(")){
+                        subTokens = tokens[i].split(":");
+                        break;
+                    }
+                }
+                if(subTokens.length != 0) {
+                    log("Limit Hours: " + subTokens[0].replaceAll("\\(", ""));
+                    log("Limit Minutes: " + subTokens[1].replaceAll("\\)", ""));
+                    //return NumberFormat.getNumberInstance(java.util.Locale.US).parse(subTokens[0]);
+                    return (Integer.parseInt(subTokens[0].replaceAll("\\(", "")) * 60) + Integer.parseInt(subTokens[1].replaceAll("\\)", ""));
+                }else{
+                    log("NoLimit");
+                    return 0;
+                }
+            }
+        }
+        return 0;
+    }
+
+    public static int buyItemGePrice(String itemName ,int quantity) {
         try {
-            if (useGrandExchange()) return false;
+            if (useGrandExchange()) return 0;
             Pair<GrandExchangeSlots, Integer> slot = getAvailableSlot();
             if (slot.getLeft() == null) {
                 if (hasBoughtOffer()) {
                     collectToBank();
                 }
-                return false;
+                return 0;
             }
             Widget buyOffer = getOfferBuyButton(slot.getLeft());
-            if (buyOffer == null) return false;
+            if (buyOffer == null) return 0;
 
             Rs2Widget.clickWidgetFast(buyOffer);
             sleepUntil(Rs2GrandExchange::isOfferTextVisible, 5000);
@@ -680,22 +713,22 @@ public class Rs2GrandExchange {
                 Microbot.getMouse().click(pricePerItemButtonX.getBounds());
                 sleepUntil(() -> Rs2Widget.getWidget(162, 41) != null, 5000); //GE Enter Price
                 sleep(1000);
+                limitMin = getGrandExchangeLimitTimer(itemName);
                 Rs2Keyboard.typeString(Integer.toString(getGrandExchangeActivelyTradedPrice(itemName)));
                 Rs2Keyboard.enter();
                 sleep(2000);
                 buyItemAbove5Percent();
                 setQuantity(quantity);
                 confirm();
-                return true;
+                return limitMin;
             } else {
                 System.out.println("unable to find widget setprice.");
             }
-
-            return false;
+            return 0;
         } catch (Exception ex) {
             System.out.println(ex.getMessage());
         }
-        return false;
+        return 0;
     }
 
     public static boolean sellItemGePrice(String itemName) {

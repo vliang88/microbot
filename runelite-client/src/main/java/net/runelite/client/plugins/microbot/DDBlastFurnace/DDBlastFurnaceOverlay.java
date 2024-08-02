@@ -68,6 +68,12 @@ public class DDBlastFurnaceOverlay extends OverlayPanel {
                     .left("State: "+ DDBlastFurnaceScript.currentState)
                     .build());
 
+            if(DDBlastFurnaceScript.currentState == DDBlastFurnaceScript.blastFurnanceStates.state_afk){
+                panelComponent.getChildren().add(LineComponent.builder()
+                        .left("Afk Time Till Log in: "+ DDBlastFurnaceScript.milliSecondTillLogin)
+                        .build());
+            }
+
         } catch (Exception ex) {
             System.out.println(ex.getMessage());
         }
