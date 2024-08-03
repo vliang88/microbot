@@ -399,7 +399,7 @@ public class Rs2GrandExchange {
                 sleep(600);
             }
 
-            Rs2GrandExchange.sellItemUnder5Percent(item.name);
+            Rs2GrandExchange.sellItemGePrice(item.name);
         }
         return Rs2Inventory.isEmpty();
     }
@@ -549,6 +549,7 @@ public class Rs2GrandExchange {
     public static int getItemPrice() {
         return Integer.parseInt(Rs2Widget.getWidget(465, 27).getText());
     }
+
 
     public static Widget getSlot(GrandExchangeSlots slot) {
         switch (slot) {
@@ -757,7 +758,9 @@ public class Rs2GrandExchange {
                 sleep(300, 500);
                 Widget pricePerItemButton5Percent = getPricePerItemButton_Minus_5Percent();
                 if (pricePerItemButton5Percent != null) {
+                    sleep(1000,2400);
                     Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
+                    sleep(1000,2400);
                 }
                 Microbot.getMouse().click(getConfirm().getBounds());
                 sleepUntil(() -> !isOfferTextVisible());
@@ -769,5 +772,25 @@ public class Rs2GrandExchange {
             System.out.println(ex.getMessage());
         }
         return false;
+    }
+
+    public static void abortAllTrades(){
+        Rs2GrandExchange.openExchange();
+        if (!isAllSlotsEmpty()) {
+            for (int i = 0; i < 8; i++) {
+                GrandExchangeSlots slot = GrandExchangeSlots.values()[i];
+                if (!Rs2GrandExchange.isSlotAvailable(slot)) {
+                    //Abort Trade
+                    Widget parent = Rs2GrandExchange.getSlot(slot);
+                    Microbot.getMouse().click(parent.getBounds());
+                    sleep(600, 1200);
+                    Rs2Widget.clickChildWidget(30474263, 0);
+                    sleep(600, 1200);
+                    Rs2Widget.clickWidget(465, 4);
+                    sleep(600, 1200);
+                }
+            }
+        }
+        Rs2GrandExchange.collectToBank();
     }
 }

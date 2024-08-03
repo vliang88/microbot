@@ -57,7 +57,7 @@ public class DDBlastFurnaceScript extends Script {
         state_muling_gotoGe,
         state_afk,
     }
-    public static double version = 2.0;
+    public static double version = 2.1;
     public int coinID = 995;
     public int bucketId = 1925;
     public int bucketOfWaterId = 1929;
@@ -134,6 +134,7 @@ public class DDBlastFurnaceScript extends Script {
             //if(!masterOnSwitch) return;
             try {
                 //Make sure run is always on as long as we have 20 run energy
+                System.out.println("runEnergy: "+ Microbot.getClient().getEnergy());
                 if(Microbot.getClient().getEnergy() > 1000 /*&& Rs2Player.isMoving()*/){
                     Rs2Player.toggleRunEnergy(true);
                 }
@@ -199,7 +200,7 @@ public class DDBlastFurnaceScript extends Script {
                             if (Math.random() > 0.25) {
                                 Rs2Walker.walkMiniMap(dispenserWP);
                             }
-                            sleepUntilTrue(() -> dispenserHasBar(config.BlastFurnaceBarSelection().getVarbit()) , 100, 25000);
+                            sleepUntilTrue(() -> dispenserHasBar(config.BlastFurnaceBarSelection().getVarbit()) , 100, 30000);
                             grabBarsFromDispenser(config.useIceGlove(), config.BlastFurnaceBarSelection().getVarbit());
 
                         }
@@ -223,6 +224,7 @@ public class DDBlastFurnaceScript extends Script {
                         }
                         break;
                     case state_sellProducts:
+                        Rs2GrandExchange.abortAllTrades();
                         if (Rs2Inventory.isEmpty()) {
                             withdrawAllAsset(config);
                             if (Rs2Inventory.isEmpty()) {
@@ -234,7 +236,7 @@ public class DDBlastFurnaceScript extends Script {
                             if (Rs2GrandExchange.sellInventory()) {
                                 //Everything from inventory is placed onto market
                                 //sleepUntilTrue(Rs2GrandExchange::hasSoldOffer, 100, 10000);
-                                //sleep(5000, 10000);
+                                sleep(5000, 10000);
                                 if (Rs2GrandExchange.hasSoldOffer()) {
                                     Rs2GrandExchange.collectToBank();
                                 }
@@ -243,12 +245,12 @@ public class DDBlastFurnaceScript extends Script {
                         }
                         break;
                     case state_buySupplies:
-                        if (updateInBankCount(config)) {
-                            if (buySupplies(config)) {
-                                Rs2GrandExchange.closeExchange();
-                                currentState = blastFurnanceStates.state_decideScriptToRun;
-                            }
+                        //if (updateInBankCount(config)) {
+                        if (buySupplies(config)) {
+                            Rs2GrandExchange.closeExchange();
+                            currentState = blastFurnanceStates.state_decideScriptToRun;
                         }
+                        //}
                         break;
                     case state_decideScriptToRun:
                         updateInBankCount(config); //Get Bank item counts agian
@@ -271,7 +273,7 @@ public class DDBlastFurnaceScript extends Script {
                             case 3:
                                 //currentState = blastFurnanceStates.state_DM_init;
                                 blastFurnaceWorld = Microbot.getClient().getWorld();
-                                Rs2Player.logout();
+                                //Rs2Player.logout();
                                 currentState = blastFurnanceStates.state_afk;
                                 afkStartTime = System.currentTimeMillis();
                                 break;
@@ -466,7 +468,7 @@ public class DDBlastFurnaceScript extends Script {
                         System.out.println("milliSecondTillLogin: "+ milliSecondTillLogin);
                         if ((System.currentTimeMillis() - afkStartTime) > (Math.max(primOreLimitMin,secOreLimitMin)* 60000L)) {
                             if(Microbot.isLoggedIn()) {
-                                currentState = blastFurnanceStates.state_buySupplies;
+                                currentState = blastFurnanceStates.state_sellProducts;
                                 break;
                             }else{
                                 //if (Microbot.getClient().getGameState() == GameState.LOGIN_SCREEN) {
@@ -584,7 +586,7 @@ public class DDBlastFurnaceScript extends Script {
             }
             //See if we are using stam pots. If yes do appropriate thing
             if(config.useStaminaPot() && needtoDrinkStamPot()){
-                Rs2Bank.withdrawOne("Stamina potion", 600);
+                Rs2Bank.withdrawOne("Stamina", 600);
                 sleepUntil(()-> Rs2Inventory.contains(ItemID.STAMINA_POTION1, ItemID.STAMINA_POTION2, ItemID.STAMINA_POTION3, ItemID.STAMINA_POTION4));
                 if(Rs2Inventory.get("Stamina") != null) {
                     if (Rs2Inventory.interact("Stamina", "Drink")) {
@@ -633,7 +635,7 @@ public class DDBlastFurnaceScript extends Script {
         return 0;
     }
     boolean needtoDrinkStamPot(){
-        return (!Rs2Player.hasStaminaBuffActive() || (Microbot.getClient().getEnergy() < 1000));
+        return (!Rs2Player.hasStaminaBuffActive() || (Microbot.getClient().getEnergy() < 1500));
     }
     void payForemanAndCoffer(DDBlastFurnaceConfig config){
         //We have to pay foreman before using the coffer for <60 smithing
@@ -742,6 +744,7 @@ public class DDBlastFurnaceScript extends Script {
             Rs2Bank.withdrawAll("Iron dart tip");
             sleep(600, 1200);
         }
+        updateInBankCount(config);
         Rs2Bank.closeBank();
         sleepUntilTrue(()->!Rs2Bank.isOpen(),100,5000);
     }
@@ -776,7 +779,6 @@ public class DDBlastFurnaceScript extends Script {
         if(Rs2Bank.hasItem("Stamina potion(1)")) {
             stamPot_inBank += (Rs2Bank.findBankItem("Stamina potion(1)").quantity);
         }
-
 
         if(Rs2Bank.hasItem("Iron bar")) {
             ironBar_inBank = Rs2Bank.findBankItem("Iron bar").quantity;
