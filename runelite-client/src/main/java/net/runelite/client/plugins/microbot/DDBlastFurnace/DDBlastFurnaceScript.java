@@ -57,7 +57,7 @@ public class DDBlastFurnaceScript extends Script {
         state_muling_gotoGe,
         state_afk,
     }
-    public static double version = 2.1;
+    public static double version = 2.2;
     public int coinID = 995;
     public int bucketId = 1925;
     public int bucketOfWaterId = 1929;
@@ -397,6 +397,9 @@ public class DDBlastFurnaceScript extends Script {
                         break;
 
                     case state_muling_changeWorld:
+                        if(Microbot.isLoggedIn()){
+                            new Login(muleHostWorld);
+                        }
                         if (Microbot.getClient().getWorld() != muleHostWorld) {
                             blastFurnaceWorld = Microbot.getClient().getWorld();
                             Microbot.hopToWorld(muleHostWorld);
@@ -448,6 +451,9 @@ public class DDBlastFurnaceScript extends Script {
                         }
                         break;
                     case state_muling_gotoGe:
+                        if(Microbot.isLoggedIn()){
+                            new Login(blastFurnaceWorld);
+                        }
                         Rs2Tab.switchToInventoryTab();
                         if(Microbot.getClient().getWorld() != blastFurnaceWorld){
                             //Case where the world is full.
@@ -466,18 +472,25 @@ public class DDBlastFurnaceScript extends Script {
                     case state_afk:
                         milliSecondTillLogin = afkStartTime + (Math.max(primOreLimitMin,secOreLimitMin)* 60000L) - System.currentTimeMillis();
                         System.out.println("milliSecondTillLogin: "+ milliSecondTillLogin);
+                        if(primOreLimitMin == 0 && secOreLimitMin == 0) {
+                            //Some reason we are here probably due to unable to buy. We check every 15min
+                            primOreLimitMin = 15;
+                            secOreLimitMin = 15;
+                        }
                         if ((System.currentTimeMillis() - afkStartTime) > (Math.max(primOreLimitMin,secOreLimitMin)* 60000L)) {
-                            if(Microbot.isLoggedIn()) {
+                            if(Microbot.isLoggedIn()){
                                 currentState = blastFurnanceStates.state_sellProducts;
                                 break;
                             }else{
-                                //if (Microbot.getClient().getGameState() == GameState.LOGIN_SCREEN) {
-                                    new Login(blastFurnaceWorld);
-                                //}
+                                new Login(blastFurnaceWorld);
                             }
                             break;
                         }else{
-                            sleep(1000,2000);
+                            if (Microbot.isLoggedIn() && geIsComplete()) {
+                                currentState = blastFurnanceStates.state_sellProducts;
+                            }else{
+                                sleep(1000, 2000);
+                            }
                         }
                         break;
 
@@ -689,7 +702,7 @@ public class DDBlastFurnaceScript extends Script {
     void placeOreOntoConveyer(){
         Rs2GameObject.interact(conveyerId, "Put-ore");
         sleep(250,500);
-        if(Rs2Widget.hasWidget("don't as agian")){
+        if(Rs2Widget.hasWidget("don't ask agian")){
             Rs2Widget.clickWidget("don't ask agian");
         }
         sleepUntilTrue(() -> (!Rs2Inventory.isFull()),100,100000);

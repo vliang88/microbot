@@ -547,7 +547,7 @@ public class Rs2GrandExchange {
     }
 
     public static int getItemPrice() {
-        return Integer.parseInt(Rs2Widget.getWidget(465, 27).getText());
+        return Integer.parseInt(Rs2Widget.getWidget(465, 27).getText().replaceAll(",",""));
     }
 
 
@@ -708,16 +708,17 @@ public class Rs2GrandExchange {
             }
             Widget pricePerItemButtonX = getPricePerItemButton_X();
             if (pricePerItemButtonX != null) {
-                System.out.println("tried to click widget");
                 sleep(2000);
-                Microbot.getMouse().click(pricePerItemButtonX.getBounds());
-                Microbot.getMouse().click(pricePerItemButtonX.getBounds());
-                sleepUntil(() -> Rs2Widget.getWidget(162, 41) != null, 5000); //GE Enter Price
-                sleep(1000);
+
                 limitMin = getGrandExchangeLimitTimer(itemName);
-                Rs2Keyboard.typeString(Integer.toString(getGrandExchangeActivelyTradedPrice(itemName)));
-                Rs2Keyboard.enter();
-                sleep(2000);
+                if(getItemPrice() < getGrandExchangeActivelyTradedPrice(itemName)) {
+                    Microbot.getMouse().click(pricePerItemButtonX.getBounds());
+                    sleepUntil(() -> Rs2Widget.getWidget(162, 41) != null, 5000); //GE Enter Price
+                    sleep(1000);
+                    Rs2Keyboard.typeString(Integer.toString(getGrandExchangeActivelyTradedPrice(itemName)));
+                    Rs2Keyboard.enter();
+                    sleep(2000);
+                }
                 buyItemAbove5Percent();
                 setQuantity(quantity);
                 confirm();
