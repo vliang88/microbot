@@ -127,6 +127,14 @@ public class Rs2Bank {
         return findBankItem(id) != null;
     }
 
+    public static int getCount(int id){
+        if(findBankItem(id) != null)
+            return findBankItem(id).quantity;
+        else{
+            return 0;
+        }
+    }
+
     /**
      * check if the player has a bank item identified by contains name
      *
