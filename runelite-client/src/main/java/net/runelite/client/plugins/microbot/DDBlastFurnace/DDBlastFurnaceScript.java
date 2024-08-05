@@ -290,7 +290,7 @@ public class DDBlastFurnaceScript extends Script {
                             //sleep(1000,2000);
                             //sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
                         } else {
-                            if (Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752, 6976)) == 0) {
+                            if (Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752, 6976)) <= 2) {
                                 if(!Rs2GameObject.exists(6977)){
                                     Rs2Walker.walkTo(new WorldPoint(2930,10184,0));
                                     sleep(1000, 2000);
@@ -397,8 +397,9 @@ public class DDBlastFurnaceScript extends Script {
                         break;
 
                     case state_muling_changeWorld:
-                        if(Microbot.isLoggedIn()){
+                        if (Microbot.getClient().getGameState() == GameState.LOGIN_SCREEN){
                             new Login(muleHostWorld);
+                            break;
                         }
                         if (Microbot.getClient().getWorld() != muleHostWorld) {
                             blastFurnaceWorld = Microbot.getClient().getWorld();
@@ -451,8 +452,9 @@ public class DDBlastFurnaceScript extends Script {
                         }
                         break;
                     case state_muling_gotoGe:
-                        if(Microbot.isLoggedIn()){
+                        if (Microbot.getClient().getGameState() == GameState.LOGIN_SCREEN){
                             new Login(blastFurnaceWorld);
+                            break;
                         }
                         Rs2Tab.switchToInventoryTab();
                         if(Microbot.getClient().getWorld() != blastFurnaceWorld){
@@ -556,9 +558,8 @@ public class DDBlastFurnaceScript extends Script {
         //We have to deposit everything including bars. Leave coal bag and bucket to start new.
         Rs2Bank.depositAllExcept("Coal bag","bucket","bucket of water");
         //Check if we need to pay coffer or foreman
-        int amountWithdraw = needToPayCoffer(config.cofferMinimum(),config.cofferReloadAmount()) + needToPayForeman();
+        int amountWithdraw = (int)((double)needToPayCoffer(config.cofferMinimum(),config.cofferReloadAmount())*getRandomArbitrary(0.5,1.0)) + needToPayForeman();
         if(amountWithdraw > 0){
-            amountWithdraw = (int)((double)amountWithdraw*getRandomArbitrary(0.5,1.0));
             cofferAndForemanAndSipsSpent += amountWithdraw;
             Rs2Bank.withdrawX("Coins", amountWithdraw);
             sleepUntilTrue(() -> Rs2Inventory.contains("Coins"), 100, 5000);
@@ -604,9 +605,14 @@ public class DDBlastFurnaceScript extends Script {
                 if(Rs2Inventory.get("Stamina") != null) {
                     if (Rs2Inventory.interact("Stamina", "Drink")) {
                         cofferAndForemanAndSipsSpent += stamPotSipPrice;
-                        sleep(100, 250);
+                        sleep(600, 1200);
                         sleepUntilTrue(() -> !needtoDrinkStamPot(), 100, 5000);
-                        Rs2Bank.depositOne("Stamina");
+                        int retries = 0;
+                        while(Rs2Inventory.contains(ItemID.STAMINA_POTION1, ItemID.STAMINA_POTION2, ItemID.STAMINA_POTION3, ItemID.STAMINA_POTION4) && retries < 10) {
+                            Rs2Bank.depositAllExcept("Coal bag", "bucket", "bucket of water");
+                            retries++;
+                            sleep(600);
+                        }
                     }
                 }
                 //Deposit everything into bank except bucket and coal bag incase we dont break vials
@@ -774,7 +780,7 @@ public class DDBlastFurnaceScript extends Script {
             primOre_inBank = 0;
         }
         if(Rs2Bank.hasItem(config.BlastFurnaceBarSelection().getSecondaryId())) {
-            secOre_inBank = Rs2Bank.findBankItem(config.BlastFurnaceBarSelection().getSecondaryOre()).quantity;
+            secOre_inBank = Rs2Bank.getCount(config.BlastFurnaceBarSelection().getSecondaryId());
         }else{
             secOre_inBank = 0;
         }
