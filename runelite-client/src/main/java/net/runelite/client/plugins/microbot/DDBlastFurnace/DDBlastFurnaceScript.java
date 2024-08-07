@@ -15,6 +15,7 @@ import net.runelite.client.plugins.microbot.globval.WidgetIndices;
 import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
+import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.grandexchange.Rs2GrandExchange;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
@@ -285,12 +286,12 @@ public class DDBlastFurnaceScript extends Script {
                         if (Rs2GameObject.get("Trapdoor") != null) {
                             Rs2GameObject.interact(ObjectID.TRAPDOOR_16168, "Travel");
                             sleep(1000, 1500);
-                            sleepUntilTrue(() -> Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752,6976)) == 0, 500, 5000);
+                            sleepUntilTrue(() -> Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752,6976)) <= 3, 500, 5000);
                             //Rs2GameObject.interact(6977);
                             //sleep(1000,2000);
                             //sleepUntilTrue(() -> !Rs2Player.isMoving(), 500, 5000);
                         } else {
-                            if (Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752, 6976)) <= 2) {
+                            if (Rs2Player.getLocalLocation().distanceTo(new LocalPoint(2752, 6976)) <= 3) {
                                 if(!Rs2GameObject.exists(6977)){
                                     Rs2Walker.walkTo(new WorldPoint(2930,10184,0));
                                     sleep(1000, 2000);
@@ -591,6 +592,9 @@ public class DDBlastFurnaceScript extends Script {
                     }
                 }
             }else{//We are using ice glove. Deposit bucket back into bank
+                if(!Rs2Equipment.hasEquipped(ItemID.ICE_GLOVES)){
+                    Rs2Bank.wearItem(ItemID.ICE_GLOVES);
+                }
                 if(Rs2Inventory.get(bucketId) != null){
                     Rs2Bank.depositAll(bucketId);
                 }
