@@ -80,6 +80,9 @@ public class DDAccountBuilderScript extends Script {
                         if(Rs2Player.getRealSkillLevel(Skill.FIREMAKING) < 16){
                             currentState = AccBuilderStates.trainFiremaking;
                         }
+                        if(Rs2Player.getRealSkillLevel(Skill.THIEVING) < 14){
+                            currentState = AccBuilderStates.trainTheiving;
+                        }
                         break;
                     case getMember:
                         //go to GE because we need to get the bond
@@ -87,7 +90,13 @@ public class DDAccountBuilderScript extends Script {
                             Rs2GrandExchange.walkToGrandExchange();
                         }
                         //Buy a old school bond
-                        if(!Rs2Inventory.hasItem(ItemID.OLD_SCHOOL_BOND)) {
+                        if(!Rs2Inventory.hasItem(ItemID.OLD_SCHOOL_BOND_UNTRADEABLE)) {
+                            Rs2Bank.openBank();
+                            if(Rs2Bank.hasItem(ItemID.OLD_SCHOOL_BOND_UNTRADEABLE)){
+                                Rs2Bank.withdrawAll(ItemID.OLD_SCHOOL_BOND_UNTRADEABLE);
+                                Rs2Bank.closeBank();
+                                break;
+                            }
                             Rs2GrandExchange.openExchange();
                             Rs2GrandExchange.abortAllTrades();
                             if(Rs2GrandExchange.buyItemGePrice("Old school bond", 1) != 0) {
@@ -97,7 +106,7 @@ public class DDAccountBuilderScript extends Script {
                                 }
                             }
                         }else{
-                            Rs2Inventory.interact(ItemID.OLD_SCHOOL_BOND,"redeem");
+                            Rs2Inventory.interact(ItemID.OLD_SCHOOL_BOND_UNTRADEABLE,"redeem");
                             sleep(1200,5000);
                             if(Rs2Widget.getWidget(861,12) != null){
                                 Rs2Widget.clickWidget(861,12);
@@ -108,6 +117,9 @@ public class DDAccountBuilderScript extends Script {
                                 sleep(1200,2400);
                             }
                             if(Rs2Widget.hasWidget("Click to continue")){
+                                Rs2Widget.clickWidget("Click to continue");
+                            }
+                            if(Rs2Widget.hasWidget("Please log out ")) {
                                 WorldToLogInto = 386;
                                 Rs2Player.logout();
                                 currentState = AccBuilderStates.decideSkilltoTrain;
@@ -129,6 +141,13 @@ public class DDAccountBuilderScript extends Script {
                         }
                         currentState = AccBuilderStates.decideSkilltoTrain;
                         break;
+                    case trainTheiving:
+                        if(Rs2Player.getRealSkillLevel(Skill.THIEVING) < 14) {
+                            ThievingTrainingSubScript.run();
+                            break;
+                        }
+                        currentState = AccBuilderStates.decideSkilltoTrain;
+                        break;
                     default:
                         break;
                 }
@@ -136,7 +155,7 @@ public class DDAccountBuilderScript extends Script {
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+        }, 0, 100, TimeUnit.MILLISECONDS);
         return true;
     }
 
@@ -144,6 +163,8 @@ public class DDAccountBuilderScript extends Script {
     public void shutdown() {
         currentState = AccBuilderStates.decideSkilltoTrain;
         CraftingTrainingSubScript.Shutdown();
+        FiremakingTrainingSubScript.Shutdown();
+        ThievingTrainingSubScript.Shutdown();
         super.shutdown();
     }
 }

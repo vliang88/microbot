@@ -60,9 +60,9 @@ public class CraftingTrainingSubScript {
                         Rs2GrandExchange.openExchange();
                     }else{
                         if(chiselInBank == 0)
-                            Rs2GrandExchange.buyItemGePrice("Chisel", 1);
+                            Rs2GrandExchange.buyItem("Chisel", 1000, 1);
                         if(uncutOpalInBank == 0)
-                            Rs2GrandExchange.buyItemGePrice("Uncut opal", 200);
+                            Rs2GrandExchange.buyItem("Uncut opal", 1000, 200);
                         sleepUntil(CraftingTrainingSubScript::geIsComplete);
                         Rs2GrandExchange.collectToBank();
                         currentState = craftingState.doBank;
@@ -70,11 +70,12 @@ public class CraftingTrainingSubScript {
                     break;
                 case doCrafting:
                     if(!Microbot.isGainingExp) {
-                        if(Rs2Inventory.contains(ItemID.UNCUT_OPAL)) {
+                        if(Rs2Inventory.contains(ItemID.UNCUT_OPAL) && Rs2Inventory.contains(ItemID.CHISEL)) {
                             Rs2Inventory.combine(ItemID.CHISEL, ItemID.UNCUT_OPAL);
                             sleep(1200);
                             if (Rs2Widget.getWidget(270, 14) != null) {
                                 Rs2Widget.clickWidget(270, 14);
+                                sleep(1200);
                             }
                         }else{
                             currentState = craftingState.doBank;
