@@ -83,6 +83,9 @@ public class DDAccountBuilderScript extends Script {
                         if(Rs2Player.getRealSkillLevel(Skill.THIEVING) < 14){
                             currentState = AccBuilderStates.trainTheiving;
                         }
+                        if(Rs2Player.getRealSkillLevel(Skill.MAGIC) < 13){
+                            currentState = AccBuilderStates.trainMagic;
+                        }
                         break;
                     case getMember:
                         //go to GE because we need to get the bond
@@ -148,6 +151,13 @@ public class DDAccountBuilderScript extends Script {
                         }
                         currentState = AccBuilderStates.decideSkilltoTrain;
                         break;
+                    case trainMagic:
+                        if(Rs2Player.getRealSkillLevel(Skill.MAGIC) < 13) {
+                            MagicTrainingSubScript.run();
+                            break;
+                        }
+                        currentState = AccBuilderStates.decideSkilltoTrain;
+                        break;
                     default:
                         break;
                 }
@@ -165,6 +175,7 @@ public class DDAccountBuilderScript extends Script {
         CraftingTrainingSubScript.Shutdown();
         FiremakingTrainingSubScript.Shutdown();
         ThievingTrainingSubScript.Shutdown();
+        MagicTrainingSubScript.Shutdown();
         super.shutdown();
     }
 }
