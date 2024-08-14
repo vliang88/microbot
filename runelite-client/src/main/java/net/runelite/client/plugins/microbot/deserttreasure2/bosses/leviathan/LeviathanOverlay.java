@@ -1,6 +1,8 @@
 package net.runelite.client.plugins.microbot.deserttreasure2.bosses.leviathan;
 
+import net.runelite.api.Point;
 import net.runelite.client.plugins.microbot.Microbot;
+import net.runelite.client.plugins.microbot.example.ExampleScript;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
@@ -22,7 +24,7 @@ public class LeviathanOverlay extends OverlayPanel {
         try {
             panelComponent.setPreferredSize(new Dimension(200, 300));
             panelComponent.getChildren().add(TitleComponent.builder()
-                    .text("Micro Example V1.0.0")
+                    .text("Micro Example V" + ExampleScript.version)
                     .color(Color.GREEN)
                     .build());
 

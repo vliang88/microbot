@@ -54,7 +54,6 @@ import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.GroundObject;
 import net.runelite.api.KeyCode;
-import net.runelite.api.Menu;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.ObjectComposition;
@@ -274,20 +273,21 @@ public class ObjectIndicatorsPlugin extends Plugin
 		MenuEntry parent = client.createMenuEntry(idx--)
 			.setOption("Mark border color")
 			.setTarget(target)
-			.setType(MenuAction.RUNELITE);
-		Menu submenu = parent.createSubMenu();
+			.setType(MenuAction.RUNELITE_SUBMENU);
 
 		for (final Color c : colors)
 		{
-			submenu.createMenuEntry(0)
+			client.createMenuEntry(idx--)
 				.setOption(ColorUtil.prependColorTag("Set color", c))
 				.setType(MenuAction.RUNELITE)
+				.setParent(parent)
 				.onClick(e -> updateObjectConfig(object, p -> p.setBorderColor(c)));
 		}
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Pick color")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> SwingUtilities.invokeLater(() ->
 			{
 				RuneliteColorPicker colorPicker = colorPickerManager.create(SwingUtilities.windowForComponent((Applet) client),
@@ -317,20 +317,21 @@ public class ObjectIndicatorsPlugin extends Plugin
 		MenuEntry parent = client.createMenuEntry(idx--)
 			.setOption("Mark fill color")
 			.setTarget(target)
-			.setType(MenuAction.RUNELITE);
-		Menu submenu = parent.createSubMenu();
+			.setType(MenuAction.RUNELITE_SUBMENU);
 
 		for (final Color c : colors)
 		{
-			submenu.createMenuEntry(0)
+			client.createMenuEntry(idx--)
 				.setOption(ColorUtil.prependColorTag("Set color", c))
 				.setType(MenuAction.RUNELITE)
+				.setParent(parent)
 				.onClick(e -> updateObjectConfig(object, p -> p.setFillColor(c)));
 		}
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Pick color")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> SwingUtilities.invokeLater(() ->
 			{
 				// default fill color depends on the highlight type. just use a=50 from hull fill.
@@ -344,9 +345,10 @@ public class ObjectIndicatorsPlugin extends Plugin
 				colorPicker.setVisible(true);
 			}));
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Reset")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> updateObjectConfig(object, p -> p.setFillColor(null)));
 
 		return idx;
@@ -357,32 +359,36 @@ public class ObjectIndicatorsPlugin extends Plugin
 		MenuEntry parent = client.createMenuEntry(idx--)
 			.setOption("Mark style")
 			.setTarget(target)
-			.setType(MenuAction.RUNELITE);
-		Menu submenu = parent.createSubMenu();
+			.setType(MenuAction.RUNELITE_SUBMENU);
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Hull")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> updateObjectConfig(object, c -> c.setHull(c.getHull() != Boolean.TRUE)));
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Outline")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> updateObjectConfig(object, c -> c.setOutline(c.getOutline() != Boolean.TRUE)));
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Clickbox")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> updateObjectConfig(object, c -> c.setClickbox(c.getClickbox() != Boolean.TRUE)));
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Tile")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e -> updateObjectConfig(object, c -> c.setTile(c.getTile() != Boolean.TRUE)));
 
-		submenu.createMenuEntry(0)
+		client.createMenuEntry(idx--)
 			.setOption("Reset")
 			.setType(MenuAction.RUNELITE)
+			.setParent(parent)
 			.onClick(e ->
 				updateObjectConfig(object, c ->
 				{

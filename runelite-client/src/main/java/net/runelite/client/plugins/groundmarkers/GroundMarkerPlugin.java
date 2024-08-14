@@ -46,7 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.KeyCode;
-import net.runelite.api.Menu;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.Tile;
@@ -281,14 +280,14 @@ public class GroundMarkerPlugin extends Plugin
 				MenuEntry menuColor = client.createMenuEntry(-3)
 					.setOption("Color")
 					.setTarget("Tile")
-					.setType(MenuAction.RUNELITE);
-				Menu submenu = menuColor.createSubMenu();
+					.setType(MenuAction.RUNELITE_SUBMENU);
 
 				if (regionPoints.size() > 1)
 				{
-					submenu.createMenuEntry(-1)
+					client.createMenuEntry(-3)
 						.setOption("Reset all")
 						.setType(MenuAction.RUNELITE)
+						.setParent(menuColor)
 						.onClick(e ->
 							chatboxPanelManager.openTextMenuInput("Are you sure you want to reset the color of " + regionPoints.size() + " tiles?")
 								.option("Yes", () ->
@@ -303,9 +302,10 @@ public class GroundMarkerPlugin extends Plugin
 								.build());
 				}
 
-				submenu.createMenuEntry(-1)
+				client.createMenuEntry(-3)
 					.setOption("Pick")
 					.setType(MenuAction.RUNELITE)
+					.setParent(menuColor)
 					.onClick(e ->
 					{
 						Color color = existing.getColor();
@@ -326,9 +326,10 @@ public class GroundMarkerPlugin extends Plugin
 				{
 					if (!color.equals(existing.getColor()))
 					{
-						submenu.createMenuEntry(-1)
+						client.createMenuEntry(-3)
 							.setOption(ColorUtil.prependColorTag("Color", color))
 							.setType(MenuAction.RUNELITE)
+							.setParent(menuColor)
 							.onClick(e -> colorTile(existing, color));
 					}
 				}

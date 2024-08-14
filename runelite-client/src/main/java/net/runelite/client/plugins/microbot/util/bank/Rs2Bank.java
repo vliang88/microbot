@@ -1022,10 +1022,6 @@ public class Rs2Bank {
         WorldPoint local = new WorldPoint(Microbot.getClient().getLocalPlayer().getWorldLocation().getX(), y, Microbot.getClient().getPlane());
         for (BankLocation bankLocation : BankLocation.values()) {
             if (!bankLocation.hasRequirements()) continue;
-            if (bankLocation.hasException()) {
-                nearest = bankLocation;
-                break;
-            }
             double currDist = local.distanceTo2D(bankLocation.getWorldPoint());
             if (nearest == null || currDist < dist) {
                 dist = currDist;
@@ -1064,7 +1060,6 @@ public class Rs2Bank {
     public static boolean walkToBankAndUseBank() {
         if (Rs2Bank.isOpen()) return true;
         Rs2Player.toggleRunEnergy(true);
-        if (Rs2Bank.useBank()) return true;
         BankLocation bankLocation = getNearestBank();
         Microbot.status = "Walking to nearest bank " + bankLocation.toString();
         boolean result = bankLocation.getWorldPoint().distanceTo(Microbot.getClient().getLocalPlayer().getWorldLocation()) <= 8;
@@ -1119,18 +1114,6 @@ public class Rs2Bank {
      * @return
      */
     public static boolean bankItemsAndWalkBackToOriginalPosition(List<String> itemNames, WorldPoint initialPlayerLocation, int emptySlotCount) {
-        return bankItemsAndWalkBackToOriginalPosition(itemNames, initialPlayerLocation, emptySlotCount, 4);
-    }
-
-    /**
-     * Banks items if your inventory not enough emptyslots. Will walk back to the initialplayerlocation passed as param
-     * @param itemNames
-     * @param initialPlayerLocation
-     * @param emptySlotCount
-     * @param distance
-     * @return
-     */
-    public static boolean bankItemsAndWalkBackToOriginalPosition(List<String> itemNames, WorldPoint initialPlayerLocation, int emptySlotCount, int distance) {
         if (Rs2Inventory.getEmptySlots() <= emptySlotCount) {
             boolean isBankOpen = Rs2Bank.walkToBankAndUseBank();
             if (isBankOpen) {
@@ -1141,8 +1124,7 @@ public class Rs2Bank {
             return false;
         }
 
-        if (distance > 10)
-            distance = 10;
+        final int distance = 4;
 
         if (initialPlayerLocation.distanceTo(Rs2Player.getWorldLocation()) > distance) {
             Rs2Walker.walkTo(initialPlayerLocation, distance);
@@ -1162,7 +1144,7 @@ public class Rs2Bank {
      * @return
      */
     public static boolean bankItemsAndWalkBackToOriginalPosition(List<String> itemNames, WorldPoint initialPlayerLocation) {
-        return bankItemsAndWalkBackToOriginalPosition(itemNames, initialPlayerLocation, 0, 4);
+        return bankItemsAndWalkBackToOriginalPosition(itemNames, initialPlayerLocation, 0);
     }
 
     /**

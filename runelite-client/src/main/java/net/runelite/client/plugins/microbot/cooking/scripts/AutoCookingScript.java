@@ -1,6 +1,5 @@
 package net.runelite.client.plugins.microbot.cooking.scripts;
 
-import net.runelite.api.AnimationID;
 import net.runelite.api.NPC;
 import net.runelite.api.TileObject;
 import net.runelite.client.plugins.microbot.Microbot;
@@ -12,7 +11,6 @@ import net.runelite.client.plugins.microbot.cooking.enums.CookingItem;
 import net.runelite.client.plugins.microbot.cooking.enums.CookingLocation;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
-import net.runelite.client.plugins.microbot.util.dialogues.Rs2Dialogue;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
@@ -93,18 +91,11 @@ public class AutoCookingScript extends Script {
 
                             Rs2Keyboard.keyPress(KeyEvent.VK_SPACE);
                             Microbot.status = "Cooking " + cookingItem.getRawItemName();
-
-                            sleepUntil(() -> (Rs2Player.getAnimation() != AnimationID.IDLE));
-                            sleepUntilTrue(() -> (!hasRawItem(cookingItem) && !Rs2Player.isAnimating(3500))
-                                    || Rs2Dialogue.isInDialogue() || Rs2Player.isWalking(), 500, 150000);
-                            if (hasRawItem(cookingItem)) {
-                                break;
-                            }
+                            sleepUntilTrue(() -> !hasRawItem(cookingItem) && !Rs2Player.isAnimating(3500), 500, 150000);
                             if (hasBurntItem(cookingItem) && !cookingItem.getBurntItemName().isEmpty()) {
                                 state = CookingState.DROPPING;
                                 return;
                             }
-
                             state = CookingState.BANKING;
                             break;
                         }

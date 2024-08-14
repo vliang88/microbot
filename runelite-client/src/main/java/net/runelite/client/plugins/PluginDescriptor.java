@@ -30,6 +30,7 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Documented
 public @interface PluginDescriptor {
+    String DD = "<html>[<font color=#E610ED>DD</font>] ";
     String Nate = "<html>[<font color=orange>N</font>] ";
     String Mocrosoft = "<html>[<font color=#b8f704M>M</font>] ";
     String OG = "<html>[<font color=#FF69B4>O</font>] ";
@@ -42,11 +43,8 @@ public @interface PluginDescriptor {
     String Pumster = "<html>[<font color=#03ff4e>P</font>] ";
     String Basche = "<html>[<font color=#07A6F0>B</font>] ";
     String Vince = "<html>[<font color=#5bffe4>V</font>] ";
-    String Basm = "<html>[<font color=#b3b3b3>W</font>] ";
     String Geoff = "<html>[<font color=#ffbc03>G</font>] ";
-    String Bttqjs = "<html>[<font color=#e57373>J</font>] ";
-    String zuk = "<html>[<font color=#5F9596>Z</font>] ";
-    
+
     String name();
 
     /**

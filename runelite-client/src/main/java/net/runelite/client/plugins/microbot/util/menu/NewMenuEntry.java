@@ -2,7 +2,6 @@ package net.runelite.client.plugins.microbot.util.menu;
 
 import net.runelite.api.*;
 import net.runelite.api.widgets.Widget;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
@@ -134,10 +133,10 @@ public class NewMenuEntry implements MenuEntry {
         return this;
     }
 
-    @Override
-    public Consumer<MenuEntry> onClick() {
-        return null;
+    public MenuEntry setParent(MenuEntry parent) {
+        return this;
     }
+
     public MenuEntry getParent() {
         return this;
     }
@@ -178,23 +177,6 @@ public class NewMenuEntry implements MenuEntry {
     @Nullable
     public Actor getActor() {
         return null;
-    }
-
-    @org.jetbrains.annotations.Nullable
-    @Override
-    public Menu getSubMenu() {
-        return null;
-    }
-
-    @NotNull
-    @Override
-    public Menu createSubMenu() {
-        return null;
-    }
-
-    @Override
-    public void deleteSubMenu() {
-
     }
 
     public boolean equals(Object o) {

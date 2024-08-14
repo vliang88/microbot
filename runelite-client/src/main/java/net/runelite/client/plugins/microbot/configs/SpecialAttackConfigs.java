@@ -54,7 +54,6 @@ public class SpecialAttackConfigs {
     }
 
     public boolean useSpecWeapon() {
-        if (!Microbot.isLoggedIn()) return false;
         if (!Rs2Combat.inCombat()) return false;
         if (!Microbot.getSpecialAttackConfigs().isUseSpecialAttack()) return false;
         if (Rs2Combat.getSpecEnergy() < Microbot.getSpecialAttackConfigs().getMinimumSpecEnergy() && currentEquipment == null) return false;

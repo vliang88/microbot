@@ -63,7 +63,6 @@ import net.runelite.api.GameState;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemID;
 import net.runelite.api.KeyCode;
-import net.runelite.api.Menu;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.Tile;
@@ -553,22 +552,23 @@ public class GroundItemsPlugin extends Plugin
 			MenuEntry parent = client.createMenuEntry(-1)
 				.setOption("Color")
 				.setTarget(event.getTarget())
-				.setType(MenuAction.RUNELITE);
-			Menu submenu = parent.createSubMenu();
+				.setType(MenuAction.RUNELITE_SUBMENU);
 			final int itemId = event.getIdentifier();
 			Color color = getItemColor(itemId);
 
 			if (color != null)
 			{
-				submenu.createMenuEntry(-1)
+				client.createMenuEntry(-1)
 					.setOption("Reset")
 					.setType(MenuAction.RUNELITE)
+					.setParent(parent)
 					.onClick(e -> unsetItemColor(itemId));
 			}
 
-			submenu.createMenuEntry(-1)
+			client.createMenuEntry(-1)
 				.setOption("Pick")
 				.setType(MenuAction.RUNELITE)
+				.setParent(parent)
 				.onClick(e ->
 					SwingUtilities.invokeLater(() ->
 					{
@@ -591,9 +591,10 @@ public class GroundItemsPlugin extends Plugin
 
 			colors.stream()
 				.filter(c -> !c.equals(color))
-				.forEach(c -> submenu.createMenuEntry(-1)
+				.forEach(c -> client.createMenuEntry(-1)
 					.setOption(ColorUtil.prependColorTag("Color", c))
 					.setType(MenuAction.RUNELITE)
+					.setParent(parent)
 					.onClick(e -> setItemColor(itemId, c)));
 		}
 	}

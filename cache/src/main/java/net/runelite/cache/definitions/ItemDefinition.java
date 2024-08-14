@@ -71,7 +71,6 @@ public class ItemDefinition
 	public int[] countObj;
 
 	public String[] options = new String[]{null, null, "Take", null, null};
-	public String[][] subops;
 
 	public String[] interfaceOptions = new String[]{null, null, null, null, "Drop"};
 

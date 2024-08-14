@@ -803,15 +803,14 @@ public class TabInterface
 			&& event.getActionParam1() == ComponentID.BANK_ITEM_CONTAINER
 			&& event.getOption().equals(DUPLICATE_ITEM))
 		{
-			// use RUNELITE_LOW_PRIORITY to avoid sending the op to the server, but also keep it right-click only
-			event.getMenuEntry().setType(MenuAction.RUNELITE_LOW_PRIORITY);
+			event.getMenuEntry().setType(MenuAction.RUNELITE);
 			event.getMenuEntry().onClick(this::opDuplicateItem);
 		}
 		if (activeTab != null
 			&& event.getActionParam1() == ComponentID.BANK_ITEM_CONTAINER
 			&& event.getOption().equals(REMOVE_LAYOUT))
 		{
-			event.getMenuEntry().setType(MenuAction.RUNELITE_LOW_PRIORITY);
+			event.getMenuEntry().setType(MenuAction.RUNELITE);
 			event.getMenuEntry().onClick(this::opRemoveLayout);
 		}
 		else if (event.getActionParam1() == ComponentID.BANK_DEPOSIT_INVENTORY

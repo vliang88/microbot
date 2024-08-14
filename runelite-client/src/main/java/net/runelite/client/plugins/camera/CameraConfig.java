@@ -134,17 +134,6 @@ public interface CameraConfig extends Config
 		return 1f;
 	}
 
-	@ConfigItem(
-		keyName = "disableCameraShake",
-		name = "Disable Camera Shake",
-		description = "Disables camera shake",
-		position = 8
-	)
-	default boolean disableCameraShake()
-	{
-		return false;
-	}
-
 	// region mouse settings
 	@ConfigItem(
 		keyName = "rightClickMovesCamera",

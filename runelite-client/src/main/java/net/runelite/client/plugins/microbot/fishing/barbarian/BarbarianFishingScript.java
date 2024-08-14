@@ -16,24 +16,20 @@ import static net.runelite.client.plugins.microbot.util.npc.Rs2Npc.validateInter
 
 public class BarbarianFishingScript extends Script {
 
-    public static String version = "1.1.1";
+    public static String version = "1.1.0";
     public static int timeout = 0;
     private BarbarianFishingConfig config;
 
     public boolean run(BarbarianFishingConfig config) {
         this.config = config;
-        //Rs2Antiban.resetAntiban();
-        //Rs2Antiban.advancedPlayStyleSetup(Activity.GENERAL_FISHING);
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             if (!super.run() || !Microbot.isLoggedIn() || !Rs2Inventory.hasItem("feather") || !Rs2Inventory.hasItem("rod")) {
                 return;
             }
 
-            //  if(Rs2Antiban.isActionCooldownActive)
-            //      return;
-
-            if (Rs2Player.isInteracting())
+            if (timeout > 0) {
                 return;
+            }
 
             if (Rs2Inventory.isFull()) {
                 dropInventoryItems(config);
@@ -49,16 +45,19 @@ public class BarbarianFishingScript extends Script {
                 validateInteractable(fishingspot);
             }
 
-            if (Rs2Npc.interact(fishingspot)) {
-                //Rs2Antiban.actionCooldown();
-            }
+            Rs2Npc.interact(fishingspot);
 
         }, 0, 600, TimeUnit.MILLISECONDS);
         return true;
     }
 
     public void onGameTick() {
-
+        if (timeout > 0 && !Rs2Player.isInteracting()) {
+            timeout--;
+        }
+        if (Rs2Player.isInteracting() && timeout == 0) {
+            timeout = config.playStyle().getRandomTickInterval();
+        }
     }
 
     private NPC findFishingSpot() {
@@ -73,11 +72,6 @@ public class BarbarianFishingScript extends Script {
 
     private void dropInventoryItems(BarbarianFishingConfig config) {
         DropOrder dropOrder = config.dropOrder() == DropOrder.RANDOM ? DropOrder.random() : config.dropOrder();
-        Rs2Inventory.dropAll(x -> x.name.toLowerCase().contains("leaping"), dropOrder);
-    }
-
-    public void shutdown() {
-        //Rs2Antiban.resetAntiban();
-        super.shutdown();
+        Rs2Inventory.dropAllExcept(false, dropOrder, "rod", "net", "pot", "harpoon", "feather", "bait", "vessel");
     }
 }

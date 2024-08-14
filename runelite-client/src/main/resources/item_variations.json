@@ -9078,10 +9078,6 @@
     20716,
     27358
   ],
-  "bruma torch": [
-    20720,
-    29777
-  ],
   "manor key": [
     20766,
     21052
@@ -10455,10 +10451,6 @@
     24824,
     24840
   ],
-  "amys saw": [
-    24880,
-    29774
-  ],
   "plank sack": [
     24882,
     25629
@@ -10710,8 +10702,7 @@
   ],
   "imcando hammer": [
     25633,
-    25644,
-    29775
+    25644
   ],
   "simple lockbox": [
     25646,
@@ -12100,13 +12091,5 @@
   "sigil of arcane swiftness": [
     29678,
     29679
-  ],
-  "dnitorso darkbuttons": [
-    29688,
-    29690
-  ],
-  "dnitorso rippedweskit": [
-    29700,
-    29702
   ]
 }
