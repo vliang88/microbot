@@ -67,8 +67,10 @@ public class AutoMiningScript extends Script {
                         List<String> itemNames = Arrays.stream(config.itemsToBank().split(",")).map(String::toLowerCase).collect(Collectors.toList());
 
                         if (config.useBank()) {
-                            if (!Rs2Bank.bankItemsAndWalkBackToOriginalPosition(itemNames, initialPlayerLocation, 0, config.distanceToStray()))
-                                return;
+                            //if (!Rs2Bank.bankItemsAndWalkBackToOriginalPosition(itemNames, initialPlayerLocation, 0, config.distanceToStray()))
+                            //
+                            //    return;
+                            sleep(600);
                         } else {
                             Rs2Inventory.dropAllExcept("pickaxe");
                         }

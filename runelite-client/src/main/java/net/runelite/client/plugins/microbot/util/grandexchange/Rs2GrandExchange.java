@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static net.runelite.client.plugins.microbot.Microbot.log;
 import static net.runelite.client.plugins.microbot.util.Global.*;
 
 public class Rs2GrandExchange {
@@ -32,6 +33,7 @@ public class Rs2GrandExchange {
     public static final int GRAND_EXCHANGE_OFFER_CONTAINER_QTY_X = 30474265;
     public static final int GRAND_EXCHANGE_OFFER_CONTAINER_QTY_1 = 30474265;
     public static final int COLLECT_BUTTON = 30474246;
+    public static int limitMin = 0;
 
     /**
      * close the grand exchange interface
@@ -220,10 +222,11 @@ public class Rs2GrandExchange {
         Widget pricePerItemButton5Percent = getPricePerItemButton_Plus5Percent();
 
         if (pricePerItemButton5Percent != null) {
-            int basePrice = getItemPrice();
+            //int basePrice = getItemPrice();
             Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
-            sleepUntil(() -> hasOfferPriceChanged(basePrice), 1600);
-            confirm();
+            //sleepUntil(() -> hasOfferPriceChanged(basePrice), 1600);
+            sleep(600,1200);
+            //confirm();
             return true;
         } else {
             System.out.println("unable to find widget setprice.");
@@ -396,7 +399,7 @@ public class Rs2GrandExchange {
                 sleep(600);
             }
 
-            Rs2GrandExchange.sellItemUnder5Percent(item.name);
+            Rs2GrandExchange.sellItemGePrice(item.name);
         }
         return Rs2Inventory.isEmpty();
     }
@@ -544,8 +547,9 @@ public class Rs2GrandExchange {
     }
 
     public static int getItemPrice() {
-        return Integer.parseInt(Rs2Widget.getWidget(465, 27).getText());
+        return Integer.parseInt(Rs2Widget.getWidget(465, 27).getText().replaceAll(",",""));
     }
+
 
     public static Widget getSlot(GrandExchangeSlots slot) {
         switch (slot) {
@@ -619,5 +623,175 @@ public class Rs2GrandExchange {
 
     public static boolean walkToGrandExchange() {
         return Rs2Walker.walkTo(BankLocation.GRAND_EXCHANGE.getWorldPoint());
+    }
+
+    public static int getGrandExchangeActivelyTradedPrice(String itemName){
+        String activelyTradedPrice_string;
+        String[] tokens;
+        String[] subTokens = new String[0];
+        Widget geTradingBox = Rs2Widget.findWidget(itemName);
+        if(geTradingBox != null){
+            if(geTradingBox.getText().contains(itemName)) {
+                activelyTradedPrice_string = Rs2Widget.getWidget(465, 26).getText();
+                //Split the string to get the price
+                tokens = activelyTradedPrice_string.split(" ");
+                int i;
+                for(i = 0; i < tokens.length; i ++){
+                    if(tokens[i].contains("price:")){
+                        subTokens = tokens[i+1].split("<br>");
+                        break;
+                    }
+                }
+                log("Price" + subTokens[0]);
+                //return NumberFormat.getNumberInstance(java.util.Locale.US).parse(subTokens[0]);
+                return Integer.parseInt(subTokens[0].replaceAll(",", ""));
+            }
+        }
+        return 0;
+    }
+
+    public static int getGrandExchangeLimitTimer(String itemName){
+        String activelyTradedPrice_string;
+        String[] tokens;
+        String[] subTokens = new String[0];
+        Widget geTradingBox = Rs2Widget.findWidget(itemName);
+        if(geTradingBox != null){
+            if(geTradingBox.getText().contains(itemName)) {
+                activelyTradedPrice_string = Rs2Widget.getWidget(465, 26).getText();
+                //Split the string to get the price
+                //Hmm a non-renewable energy source!<br>Buy limit: 13,000 (0:51) / Actively traded price: 127
+                tokens = activelyTradedPrice_string.split(" ");
+                int i;
+                for(i = 0; i < tokens.length; i ++){
+                    if(tokens[i].contains("(")){
+                        subTokens = tokens[i].split(":");
+                        break;
+                    }
+                }
+                if(subTokens.length != 0) {
+                    log("Limit Hours: " + subTokens[0].replaceAll("\\(", ""));
+                    log("Limit Minutes: " + subTokens[1].replaceAll("\\)", ""));
+                    //return NumberFormat.getNumberInstance(java.util.Locale.US).parse(subTokens[0]);
+                    return (Integer.parseInt(subTokens[0].replaceAll("\\(", "")) * 60) + Integer.parseInt(subTokens[1].replaceAll("\\)", ""));
+                }else{
+                    log("NoLimit");
+                    return 0;
+                }
+            }
+        }
+        return 0;
+    }
+
+    public static int buyItemGePrice(String itemName ,int quantity) {
+        try {
+            if (useGrandExchange()) return 0;
+            Pair<GrandExchangeSlots, Integer> slot = getAvailableSlot();
+            if (slot.getLeft() == null) {
+                if (hasBoughtOffer()) {
+                    collectToBank();
+                }
+                return 0;
+            }
+            Widget buyOffer = getOfferBuyButton(slot.getLeft());
+            if (buyOffer == null) return 0;
+
+            Rs2Widget.clickWidgetFast(buyOffer);
+            sleepUntil(Rs2GrandExchange::isOfferTextVisible, 5000);
+            sleepUntil(() -> Rs2Widget.hasWidget("What would you like to buy?"));
+            Rs2Keyboard.typeString(itemName);
+            sleepUntil(() -> !Rs2Widget.hasWidget("Start typing the name"), 5000); //GE Search Results
+            sleep(1200);
+            Pair<Widget, Integer> itemResult = getSearchResultWidget(itemName);
+            if (itemResult != null) {
+                Rs2Widget.clickWidgetFast(itemResult.getLeft(), itemResult.getRight(), 1);
+                sleepUntil(() -> getPricePerItemButton_X() != null);
+            }
+            Widget pricePerItemButtonX = getPricePerItemButton_X();
+            if (pricePerItemButtonX != null) {
+                sleep(2000);
+
+                limitMin = getGrandExchangeLimitTimer(itemName);
+                if(getItemPrice() < getGrandExchangeActivelyTradedPrice(itemName)) {
+                    Microbot.getMouse().click(pricePerItemButtonX.getBounds());
+                    sleepUntil(() -> Rs2Widget.getWidget(162, 41) != null, 5000); //GE Enter Price
+                    sleep(1000);
+                    Rs2Keyboard.typeString(Integer.toString(getGrandExchangeActivelyTradedPrice(itemName)));
+                    Rs2Keyboard.enter();
+                    sleep(2000);
+                }
+                buyItemAbove5Percent();
+                setQuantity(quantity);
+                confirm();
+                return limitMin;
+            } else {
+                System.out.println("unable to find widget setprice.");
+            }
+            return 0;
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
+        return 0;
+    }
+
+    public static boolean sellItemGePrice(String itemName) {
+        try {
+            if (!Rs2Inventory.hasItem(itemName)) return false;
+
+            if (useGrandExchange()) return false;
+
+            Pair<GrandExchangeSlots, Integer> slot = getAvailableSlot();
+            Widget sellOffer = getOfferSellButton(slot.getLeft());
+
+            if (sellOffer == null) return false;
+
+            Microbot.getMouse().click(sellOffer.getBounds());
+            sleepUntil(Rs2GrandExchange::isOfferTextVisible, 5000);
+            Rs2Inventory.interact(itemName, "Offer");
+            sleepUntil(() -> Rs2Widget.hasWidget("actively traded price"));
+            sleep(300, 600);
+            Widget pricePerItemButtonX = getPricePerItemButton_X();
+            if (pricePerItemButtonX != null) {
+                Microbot.getMouse().click(pricePerItemButtonX.getBounds());
+                sleepUntil(() -> Rs2Widget.getWidget(162, 41) != null, 5000); //GE Enter Price
+                sleep(1000);
+                Rs2Keyboard.typeString(Integer.toString(getGrandExchangeActivelyTradedPrice(itemName)));
+                Rs2Keyboard.enter();
+                sleep(300, 500);
+                Widget pricePerItemButton5Percent = getPricePerItemButton_Minus_5Percent();
+                if (pricePerItemButton5Percent != null) {
+                    sleep(1000,2400);
+                    Microbot.getMouse().click(pricePerItemButton5Percent.getBounds());
+                    sleep(1000,2400);
+                }
+                Microbot.getMouse().click(getConfirm().getBounds());
+                sleepUntil(() -> !isOfferTextVisible());
+                return true;
+            } else {
+                System.out.println("unable to find widget setprice.");
+            }
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
+        return false;
+    }
+
+    public static void abortAllTrades(){
+        Rs2GrandExchange.openExchange();
+        if (!isAllSlotsEmpty()) {
+            for (int i = 0; i < 8; i++) {
+                GrandExchangeSlots slot = GrandExchangeSlots.values()[i];
+                if (!Rs2GrandExchange.isSlotAvailable(slot)) {
+                    //Abort Trade
+                    Widget parent = Rs2GrandExchange.getSlot(slot);
+                    Microbot.getMouse().click(parent.getBounds());
+                    sleep(600, 1200);
+                    Rs2Widget.clickChildWidget(30474263, 0);
+                    sleep(600, 1200);
+                    Rs2Widget.clickWidget(465, 4);
+                    sleep(600, 1200);
+                }
+            }
+        }
+        Rs2GrandExchange.collectToBank();
     }
 }
