@@ -14,9 +14,6 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 
-import static net.runelite.client.plugins.natepainthelper.Info.timeBegan;
-import static net.runelite.client.plugins.natepainthelper.Info.xpGained;
-
 
 public class DDBurnerLighterOverlay extends OverlayPanel {
     @Inject

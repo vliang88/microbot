@@ -280,8 +280,10 @@ public class DDBurnerLighterScript extends Script {
                     .findFirst()
                     .orElse(null);
             if(gildedAlter != null) {
-                alterWP[hostNumber] = new WorldPoint(gildedAlter.getWorldLocation().getX() + 1, gildedAlter.getWorldLocation().getY(), gildedAlter.getWorldLocation().getPlane());
-                Rs2Walker.walkCanvas(alterWP[hostNumber]);
+                //alterWP[hostNumber] = new WorldPoint(gildedAlter.getWorldLocation().getX() + 1, gildedAlter.getWorldLocation().getY(), gildedAlter.getWorldLocation().getPlane());
+                //Rs2Walker.walkCanvas(alterWP[hostNumber]);
+                //Pray at alter
+                Rs2GameObject.interact("Alter");
             }
         }else{
             Rs2Walker.walkCanvas(alterWP[hostNumber]);
