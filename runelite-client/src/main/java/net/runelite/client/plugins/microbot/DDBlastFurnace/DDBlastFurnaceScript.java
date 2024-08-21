@@ -15,11 +15,13 @@ import net.runelite.client.plugins.microbot.globval.WidgetIndices;
 import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
+import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
 import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.grandexchange.Rs2GrandExchange;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
+import net.runelite.client.plugins.microbot.util.mouse.Mouse;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.security.Login;
@@ -140,6 +142,12 @@ public class DDBlastFurnaceScript extends Script {
                     Rs2Player.toggleRunEnergy(true);
                 }
                 Microbot.getClient().setCameraPitchTarget(383);
+
+                //See if we want to do antiban
+                if(Math.random() < 0.10){
+                    System.out.println("Doing AntiBan");
+                    doAntiBan();
+                }
 
                 switch (currentState) {
                     case state_addFriend:
@@ -506,7 +514,18 @@ public class DDBlastFurnaceScript extends Script {
         }, 0, 100, TimeUnit.MILLISECONDS);
         return true;
     }
-
+    boolean doAntiBan(){
+        int numOfAntiban = 1;
+        int antiBanChoosen = (int) (Math.random()*(numOfAntiban));
+        switch(antiBanChoosen){
+            case 0:
+                //random rotate of camera.
+                Rs2Camera.setAngle((int) (Math.random()*(2048)));
+            default:
+                break;
+        }
+        return true;
+    }
     int decideScript(DDBlastFurnaceConfig config){
         FriendContainer friendContainer = Microbot.getClient().getFriendContainer();
         Friend hostFriend = friendContainer.findByName(config.mulingHost());
@@ -611,10 +630,8 @@ public class DDBlastFurnaceScript extends Script {
                         cofferAndForemanAndSipsSpent += stamPotSipPrice;
                         sleep(600, 1200);
                         sleepUntilTrue(() -> !needtoDrinkStamPot(), 100, 5000);
-                        int retries = 0;
-                        while(Rs2Inventory.contains(ItemID.STAMINA_POTION1, ItemID.STAMINA_POTION2, ItemID.STAMINA_POTION3, ItemID.STAMINA_POTION4) && retries < 10) {
+                        while(Rs2Inventory.contains(ItemID.STAMINA_POTION1, ItemID.STAMINA_POTION2, ItemID.STAMINA_POTION3, ItemID.STAMINA_POTION4)) {
                             Rs2Bank.depositAllExcept("Coal bag", "bucket", "bucket of water");
-                            retries++;
                             sleep(600);
                         }
                     }
@@ -658,7 +675,7 @@ public class DDBlastFurnaceScript extends Script {
         return 0;
     }
     boolean needtoDrinkStamPot(){
-        return (!Rs2Player.hasStaminaBuffActive() || (Microbot.getClient().getEnergy() < 1500));
+        return ((Microbot.getClient().getEnergy() < 2500));
     }
     void payForemanAndCoffer(DDBlastFurnaceConfig config){
         //We have to pay foreman before using the coffer for <60 smithing
@@ -734,6 +751,7 @@ public class DDBlastFurnaceScript extends Script {
             sleepUntilTrue(() -> Microbot.getVarbitValue(Varbits.BAR_DISPENSER) == 3, 100, 5000);
         }
         if(Microbot.getVarbitValue(Varbits.BAR_DISPENSER) >= 2) {
+            sleep(200,800);
             Rs2GameObject.interact(barDispenserId, "take");
             sleep(100, 500);
             sleepUntilTrue(() -> Rs2Widget.getWidget(17694733) != null,100, 10000);

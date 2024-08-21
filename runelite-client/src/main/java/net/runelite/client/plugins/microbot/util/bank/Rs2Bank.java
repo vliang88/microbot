@@ -26,6 +26,7 @@ import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,7 +102,11 @@ public class Rs2Bank {
      */
     public static boolean closeBank() {
         if (!isOpen()) return false;
-        Rs2Widget.clickChildWidget(786434, 11);
+        if (Math.random() < 0.50) {
+            Rs2Widget.clickChildWidget(786434, 11);
+        }else{
+            Rs2Keyboard.keyPress(KeyEvent.VK_ESCAPE);
+        }
         sleepUntilOnClientThread(() -> !isOpen());
 
         return true;
