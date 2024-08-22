@@ -144,7 +144,7 @@ public class DDBlastFurnaceScript extends Script {
                 Microbot.getClient().setCameraPitchTarget(383);
 
                 //See if we want to do antiban
-                if(Math.random() < 0.10){
+                if(Math.random() < 0.10 && currentState != blastFurnanceStates.state_afk && currentState != blastFurnanceStates.state_BF_doBank){
                     System.out.println("Doing AntiBan");
                     doAntiBan();
                 }
@@ -515,14 +515,17 @@ public class DDBlastFurnaceScript extends Script {
         return true;
     }
     boolean doAntiBan(){
-        int numOfAntiban = 1;
+        int numOfAntiban = 2;
         int antiBanChoosen = (int) (Math.random()*(numOfAntiban));
         switch(antiBanChoosen){
             case 0:
                 //random rotate of camera.
                 Rs2Camera.setAngle((int) (Math.random()*(2048)));
+            case 1:
+                Rs2Keyboard.typeString("hi all");
             default:
                 break;
+
         }
         return true;
     }
