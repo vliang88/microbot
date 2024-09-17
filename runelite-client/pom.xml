@@ -29,7 +29,7 @@
 	<parent>
 		<groupId>net.runelite</groupId>
 		<artifactId>runelite-parent</artifactId>
-		<version>1.10.36-SNAPSHOT</version>
+		<version>1.10.37-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>client</artifactId>
@@ -41,7 +41,7 @@
 		<git.commit.id.abbrev>nogit</git.commit.id.abbrev>
 		<git.dirty>false</git.dirty>
 		<shade.skip>false</shade.skip>
-		<microbot.version>1.4.3</microbot.version>
+		<microbot.version>1.4.7</microbot.version>
 	</properties>
 
 	<dependencies>
@@ -55,12 +55,6 @@
 			<groupId>org.roaringbitmap</groupId>
 			<artifactId>RoaringBitmap</artifactId>
 			<version>0.9.44</version>
-		</dependency>
-		<!-- Archive Patcher library -->
-		<dependency>
-			<groupId>com.google.archivepatcher</groupId>
-			<artifactId>archive-patch-applier</artifactId>
-			<version>1.0.4</version>
 		</dependency>
 		<!-- CFR decompiler library -->
 		<dependency>

@@ -423,8 +423,11 @@ public class Rs2Walker {
 
             // Match action
             var action = Arrays.stream(objectComp.getActions())
-                    .filter(x -> x != null && doorActions.contains(x.toLowerCase()))
-                    .min(Comparator.comparing(x -> doorActions.indexOf(x.toLowerCase()))).orElse(null);
+                    .filter(x -> x != null && doorActions.stream().anyMatch(doorAction -> x.toLowerCase().startsWith(doorAction)))
+                    .min(Comparator.comparing(x -> doorActions.indexOf(
+                            doorActions.stream().filter(doorAction -> x.toLowerCase().startsWith(doorAction)).findFirst().orElse(""))))
+                    .orElse(null);
+
             if (action == null) continue;
 
             boolean found = false;
@@ -469,6 +472,7 @@ public class Rs2Walker {
 
 
             if (found){
+                System.out.println(action);
                 Rs2GameObject.interact(object, action);
                 Rs2Player.waitForWalking();
                 return true;
@@ -684,7 +688,8 @@ public class Rs2Walker {
                                             .thenComparing(x -> ((TileObject)x).getWorldLocation().distanceTo(b.getDestination()))).orElse(null);
 
                         if (tileObject != null && tileObject.getId() == b.getObjectId()) {
-                            boolean interact = Rs2GameObject.interact(tileObject, b.getAction(), true);
+                            boolean checkCanReach = tileObject.getId() != 16533;
+                            boolean interact = Rs2GameObject.interact(tileObject, b.getAction(), checkCanReach);
                         if (!interact) {
                             Rs2Walker.walkMiniMap(path.get(i));
                             sleep(1600, 2000);
@@ -796,5 +801,20 @@ public class Rs2Walker {
         }
         ShortestPathPlugin.setStartPointSet(true);
         restartPathfinding(start, ShortestPathPlugin.getPathfinder().getTarget());
+    }
+
+    /**
+     * Checks the distance between startpoint and endpoint using ShortestPath
+     * 
+     * @param startpoint
+     * @param endpoint
+     * @return distance
+     */
+    public static int getDistanceBetween(WorldPoint startpoint, WorldPoint endpoint) {
+        ExecutorService pathfindingExecutor = Executors.newSingleThreadExecutor();
+        Pathfinder pathfinder = new Pathfinder(ShortestPathPlugin.getPathfinderConfig(), startpoint, endpoint);
+        pathfindingExecutor.submit(pathfinder);
+        sleepUntil(pathfinder::isDone);
+        return pathfinder.getPath().size();
     }
 }
