@@ -18,42 +18,36 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static net.runelite.client.plugins.microbot.Microbot.log;
+
 public class QoLOverlay extends OverlayPanel {
     QoLConfig config;
+    QoLPlugin plugin;
 
     @Inject
     QoLOverlay(QoLPlugin plugin, QoLConfig config) {
         super(plugin);
+        this.plugin = plugin;
         this.config = config;
         setPosition(OverlayPosition.DYNAMIC);
-        setLayer(OverlayLayer.ABOVE_SCENE);
+        //setPosition(OverlayPosition.TOP_LEFT);
+        setLayer(OverlayLayer.ABOVE_WIDGETS);
         setNaughty();
     }
 
     @Override
     public Dimension render(Graphics2D graphics) {
         try {
-//            panelComponent.setPreferredSize(new Dimension(200, 300));
-//            panelComponent.getChildren().add(TitleComponent.builder()
-//                    .text("Micro Example V1.0.0")
-//                    .color(Color.GREEN)
-//                    .build());
-//
-//            panelComponent.getChildren().add(LineComponent.builder().build());
-//
-//            panelComponent.getChildren().add(LineComponent.builder()
-//                    .left(Microbot.status)
-//                    .build());
-//
+
             if (config.renderMaxHitOverlay())
                 renderNpcs(graphics);
 
-
         } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+            log("Error in QoLOverlay: " + ex.getMessage());
         }
         return super.render(graphics);
     }
+
 
     private void renderNpcs(Graphics2D graphics) {
         List<NPC> npcs;
@@ -65,7 +59,7 @@ public class QoLOverlay extends OverlayPanel {
                 try {
                     String text = ("Max Hit: " + Objects.requireNonNull(Rs2NpcManager.getStats(npc.getId())).getMaxHit());
 
-                    graphics.setFont(new Font("Arial", Font.BOLD, 14));
+
                     //npc.setOverheadText(text);
                     LocalPoint lp = npc.getLocalLocation();
                     Point textLocation = Perspective.getCanvasTextLocation(Microbot.getClient(), graphics, lp, text, npc.getLogicalHeight());

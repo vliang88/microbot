@@ -1694,8 +1694,8 @@ public class CrypticClue extends ClueScroll implements NpcClueScroll, ObjectClue
 		CrypticClue.builder()
 			.text("Search the food barrel at the top of the Hunter Guild.")
 			.location(new WorldPoint(1560, 3048, 2))
-			.objectId(ObjectID.FOOD_BARREL)
-			.solution("Search the food barrel at the top of the Hunter Guild.")
+			.objectId(ObjectID.FOOD_POT)
+			.solution("Search the food pot at the top of the Hunter Guild.")
 			.build(),
 		CrypticClue.builder()
 			.text("Are you somewhat entertained?")
@@ -1708,6 +1708,21 @@ public class CrypticClue extends ClueScroll implements NpcClueScroll, ObjectClue
 			.location(new WorldPoint(1432, 9584, 0))
 			.npc("Funbo")
 			.solution("Speak to Funbo inside Cam Torum's pub.")
+			.build(),
+		CrypticClue.builder()
+			.text("Dig at a waterfall by the pines in the serpent's shadow.")
+			.location(new WorldPoint(1490, 3257, 0))
+			.solution("Dig by the waterfall in Quetzacalli Gorge.")
+			.build(),
+		CrypticClue.builder()
+			.text("Banish a chilling spirit.")
+			.npc("Frost Nagua")
+			.solution("Kill a frost nagua.")
+			.build(),
+		CrypticClue.builder()
+			.text("Dig outside the bank on Aldarin.")
+			.location(new WorldPoint(1390, 2926, 0))
+			.solution("Dig outside the bank on Aldarin.")
 			.build()
 	);
 

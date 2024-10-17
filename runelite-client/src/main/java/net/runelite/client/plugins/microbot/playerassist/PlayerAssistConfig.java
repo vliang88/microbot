@@ -7,17 +7,18 @@ import net.runelite.client.plugins.microbot.playerassist.enums.PlayStyle;
 import net.runelite.client.plugins.microbot.playerassist.enums.PrayerStyle;
 
 @ConfigGroup(net.runelite.client.plugins.microbot.playerassist.PlayerAssistConfig.GROUP)
+@ConfigInformation("1. Make sure to place the cannon first before starting the plugin. <br />" +
+        "2. Use food also supports Guthan's healing, the shield weapon is default set to Dragon Defender. <br />" +
+        "3. Prayer, Combat, Ranging & AntiPoison potions are supported. <br />" +
+        "4. Items to loot based your requirements. <br />" +
+        "5. You can turn auto attack NPC off if you have a cannon. <br />" +
+        "6. PrayFlick in different styles. <br />" +
+        "7. SafeSpot you can Shift Right-click the ground to select the tile. <br />" +
+        "8. Right-click NPCs to add them to the attack list. <br />")
 public interface PlayerAssistConfig extends Config {
 
     String GROUP = "PlayerAssistant";
 
-    @ConfigSection(
-            name = "General",
-            description = "General",
-            position = 0,
-            closedByDefault = false
-    )
-    String generalSection = "general";
     @ConfigSection(
             name = "Combat",
             description = "Combat",
@@ -70,25 +71,6 @@ public interface PlayerAssistConfig extends Config {
             closedByDefault = false
     )
     String skillingSection = "Combat Skilling";
-
-    @ConfigItem(
-            keyName = "GUIDE",
-            name = "GUIDE",
-            description = "GUIDE",
-            position = 0,
-            section = generalSection
-    )
-    default String GUIDE() {
-        return "This plugin allows for semi afk.\n" +
-                "1. Make sure to place the cannon first before starting the plugin.\n" +
-                "2. Use food also supports Guthan's healing, the shield weapon is default set to Dragon Defender.\n" +
-                "3. Prayer, Combat, Ranging & AntiPoison potions are supported \n" +
-                "4. Items to loot based your requirements \n" +
-                "5. You can turn auto attack NPC off if you have a cannon.\n" +
-                "6. PrayFlick in different styles\n" +
-                "7. SafeSpot you can Shift Right-click the ground to select the tile\n" +
-                "8. Right-click NPCs to add them to the attack list.";
-    }
 
     @ConfigItem(
             keyName = "Combat",
@@ -167,6 +149,17 @@ public interface PlayerAssistConfig extends Config {
     )
     default PlayStyle playStyle() {
         return PlayStyle.AGGRESSIVE;
+    }
+
+    @ConfigItem(
+            keyName = "ReachableNpcs",
+            name = "Only attack reachable npcs",
+            description = "Only attack npcs that we can reach with melee",
+            position = 7,
+            section = combatSection
+    )
+    default boolean attackReachableNpcs() {
+        return true;
     }
 
     @ConfigItem(
@@ -350,6 +343,18 @@ public interface PlayerAssistConfig extends Config {
             section = lootSection
     )
     default boolean toggleOnlyLootMyItems() {
+        return false;
+    }
+
+    //Force loot regardless if we are in combat or not
+    @ConfigItem(
+            keyName = "forceLoot",
+            name = "Force Loot",
+            description = "Force loot regardless if we are in combat or not",
+            position = 100,
+            section = lootSection
+    )
+    default boolean toggleForceLoot() {
         return false;
     }
 

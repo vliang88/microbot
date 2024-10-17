@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 public class ThievingScript extends Script {
 
-    public static String version = "1.5.7";
+    public static String version = "1.5.8";
     ThievingConfig config;
 
     boolean isPickpocketting = false;
@@ -89,10 +89,15 @@ public class ThievingScript extends Script {
                         .anyMatch(n -> n.equalsIgnoreCase(x.getName())))
                 .findFirst()
                 .orElse(null);
-        if (npc != null) {
+        Map<NPC, HighlightedNpc> highlightedNpcs =  net.runelite.client.plugins.npchighlight.NpcIndicatorsPlugin.getHighlightedNpcs();
+        if (highlightedNpcs.isEmpty()) {
             if (Rs2Npc.pickpocket(npc)) {
-                Microbot.status = "Pickpocketting " + npc.getName();
-                sleep(300, 600);
+                Rs2Walker.setTarget(null);
+                sleep(50, 250);
+            }
+        } else {
+            if (Rs2Npc.pickpocket(highlightedNpcs)) {
+                sleep(50, 250);
             }
         }
     }
@@ -170,7 +175,12 @@ public class ThievingScript extends Script {
             boolean isBankOpen = Rs2Bank.useBank();
             if (!isBankOpen) return;
             Rs2Bank.depositAll();
-            Rs2Bank.withdrawX(true, config.food().getName(), config.foodAmount(), true);
+            boolean successfullyWithdrawFood = Rs2Bank.withdrawX(true, config.food().getName(), config.foodAmount(), true);
+            if (!successfullyWithdrawFood) {
+                Microbot.showMessage(config.food().getName() + " not found in bank");
+                sleep(5000);
+                return;
+            }
             Rs2Bank.withdrawX(true, "dodgy necklace", config.dodgyNecklaceAmount());
             if (config.shadowVeil()) {
                 Rs2Bank.withdrawAll(true,"Fire rune", true);

@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
+import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
 
 /**
  * This class represents a travel point between two WorldPoints.
@@ -453,22 +454,20 @@ public class Transport {
         System.out.println("Destination: " + destination);
 
         // Check if the widget is already visible
-        if (!Rs2Widget.isHidden(gliderMenu)) {
-            System.out.println("Widget is already visible. Skipping interaction.");
-            return true;
+        if (Rs2Widget.isHidden(gliderMenu)) {
+            // Find the glider NPC
+            NPC gnome = Rs2Npc.getNpc(npcName);  // Use the NPC name to find the NPC
+            if (gnome == null) {
+                System.out.println("Gnome not found.");
+                return false;
+            }
+
+            // Interact with the gnome glider NPC
+            Rs2Npc.interact(gnome, action);
+            sleepUntil(() -> !Rs2Widget.isHidden(gliderMenu));
         }
 
-        // Find the glider NPC
-        NPC gnome = Rs2Npc.getNpc(npcName);  // Use the NPC name to find the NPC
-        if (gnome == null) {
-            System.out.println("Gnome not found.");
-            return false;
-        }
 
-        // Interact with the gnome glider NPC
-        Rs2Npc.interact(gnome, action);
-
-        sleep(1200,2400);
 
         // Wait for the widget to become visible
         boolean widgetVisible = !Rs2Widget.isHidden(gliderMenu);
@@ -545,7 +544,7 @@ public class Transport {
             rotateSlotToDesiredRotation(SLOT_TWO, Rs2Widget.getWidget(SLOT_TWO).getRotationY(), getDesiredRotation(getDisplayInfo().charAt(1)), SLOT_TWO_ACW_ROTATION, SLOT_TWO_CW_ROTATION);
             rotateSlotToDesiredRotation(SLOT_THREE, Rs2Widget.getWidget(SLOT_THREE).getRotationY(), getDesiredRotation(getDisplayInfo().charAt(2)), SLOT_THREE_ACW_ROTATION, SLOT_THREE_CW_ROTATION);
             Rs2Widget.clickWidget(TELEPORT_BUTTON);
-            sleep(1200,1800);
+            Rs2Player.waitForAnimation();
             if (!Rs2Equipment.isWearing(startingWeaponId)) {
                 sleep(3000,3600); // Required due to long animation time
                 System.out.println("Equipping Starting Weapon: " + startingWeaponId);

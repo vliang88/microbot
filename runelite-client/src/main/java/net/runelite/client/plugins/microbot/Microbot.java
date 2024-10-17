@@ -19,6 +19,7 @@ import net.runelite.client.plugins.loottracker.LootTrackerPlugin;
 import net.runelite.client.plugins.loottracker.LootTrackerRecord;
 import net.runelite.client.plugins.microbot.configs.SpecialAttackConfigs;
 import net.runelite.client.plugins.microbot.dashboard.PluginRequestModel;
+import net.runelite.client.plugins.microbot.qualityoflife.scripts.pouch.PouchScript;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Item;
 import net.runelite.client.plugins.microbot.util.math.Random;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
@@ -63,6 +64,8 @@ public class Microbot {
     public static boolean pauseAllScripts = false;
     public static String status = "IDLE";
     public static boolean enableAutoRunOn = true;
+    public static boolean useStaminaPotsIfNeeded = true;
+    public static int runEnergyThreshold = 4000;
     @Getter
     @Setter
     public static NaturalMouse naturalMouse;
@@ -116,6 +119,16 @@ public class Microbot {
     private static ChatMessageManager chatMessageManager;
     private static ScheduledFuture<?> xpSchedulorFuture;
     private static net.runelite.api.World quickHopTargetWorld;
+    /**
+     * Pouchscript is injected in the main MicrobotPlugin as it's being used in multiple scripts
+     */
+    @Getter
+    @Setter
+    @Inject
+    private static PouchScript pouchScript;
+
+    public static boolean cantReachTarget = false;
+    public static int cantReachTargetRetries = 0;
 
     @Deprecated(since = "Use isMoving", forRemoval = true)
     public static boolean isWalking() {
@@ -281,10 +294,12 @@ public class Microbot {
     }
 
     public static void click(Rectangle rectangle, NewMenuEntry entry) {
-
-        Point point = Rs2UiHelper.getClickingPoint(rectangle, true);
-        mouse.click(point, entry);
-
+        if (entry.getType() == MenuAction.WALK) {
+            mouse.click(new Point(entry.getParam0(), entry.getParam1()), entry);
+        } else {
+            Point point = Rs2UiHelper.getClickingPoint(rectangle, true);
+            mouse.click(point, entry);
+        }
 
         if (!Microbot.getClient().isClientThread()) {
             sleep(50, 100);

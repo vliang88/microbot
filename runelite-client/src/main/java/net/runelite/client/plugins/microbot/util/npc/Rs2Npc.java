@@ -9,6 +9,7 @@ import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.antiban.Rs2AntibanSettings;
 import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
 import net.runelite.client.plugins.microbot.util.combat.Rs2Combat;
+import net.runelite.client.plugins.microbot.util.math.Random;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
 import net.runelite.client.plugins.microbot.util.misc.Rs2UiHelper;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
@@ -186,6 +187,25 @@ public class Rs2Npc {
         if (npc == null) return false;
         Microbot.status = action + " " + npc.getName();
         try {
+
+            if (Microbot.cantReachTarget) {
+                if (!hasLineOfSight(npc)) {
+                    if (Microbot.cantReachTargetRetries >= Random.random(3, 5)) {
+                        Microbot.pauseAllScripts = true;
+                        Microbot.showMessage("Your bot tries to interact with an npc for " + Microbot.cantReachTargetRetries + " times but failed. Please take a look at what is happening.");
+                        return false;
+                    }
+                    Rs2Walker.walkTo(Rs2Tile.getNearestWalkableTileWithLineOfSight(npc.getWorldLocation()), 0);
+                    Microbot.pauseAllScripts = false;
+                    Microbot.cantReachTargetRetries++;
+                    return false;
+                } else {
+                    Microbot.pauseAllScripts = false;
+                    Microbot.cantReachTarget = false;
+                    Microbot.cantReachTargetRetries = 0;
+                }
+            }
+
             NPCComposition npcComposition = Microbot.getClientThread().runOnClientThread(() -> Microbot.getClient().getNpcDefinition(npc.getId()));
 
             int index = 0;
@@ -203,6 +223,7 @@ public class Rs2Npc {
 
         } catch (Exception ex) {
             Microbot.log(ex.getMessage());
+            ex.printStackTrace();
         }
 
         return true;
@@ -284,22 +305,11 @@ public class Rs2Npc {
     public static boolean pickpocket(String npcName) {
         NPC npc = getNpc(npcName);
 
-        if (npc == null) return false;
-
-        if (!hasLineOfSight(npc)) {
-            Rs2Walker.walkTo(npc.getWorldLocation(), 1);
-            return false;
-        }
-
-        return interact(npc, "pickpocket");
+        return pickpocket(npc);
     }
 
     public static boolean pickpocket(Map<NPC, HighlightedNpc> highlightedNpcs) {
         for (NPC npc : highlightedNpcs.keySet()) {
-            if (!hasLineOfSight(npc)) {
-                Rs2Walker.walkTo(npc.getWorldLocation(), 1);
-                return false;
-            }
             return interact(npc, "pickpocket");
         }
         return false;
@@ -311,6 +321,7 @@ public class Rs2Npc {
 
     public static boolean hasLineOfSight(NPC npc) {
         if (npc == null) return false;
+        if (npc.getWorldLocation().equals(Rs2Player.getWorldLocation())) return true;
         return new WorldArea(
                 npc.getWorldLocation(),
                 npc.getComposition().getSize(),
