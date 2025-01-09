@@ -34,6 +34,7 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 import com.google.inject.Module;
 import com.google.inject.*;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
@@ -44,6 +45,7 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.PluginChanged;
 import net.runelite.client.events.ProfileChanged;
+import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.task.Schedule;
 import net.runelite.client.task.ScheduledMethod;
 import net.runelite.client.task.Scheduler;
@@ -78,12 +80,12 @@ public class PluginManager
 
 	private final boolean developerMode;
 	private final boolean safeMode;
-	private final boolean disableWalkerUpdate;
 	private final EventBus eventBus;
 	private final Scheduler scheduler;
 	private final ConfigManager configManager;
 	private final Provider<GameEventManager> sceneTileManager;
 	private final List<Plugin> plugins = new CopyOnWriteArrayList<>();
+	@Getter
 	private final List<Plugin> activePlugins = new CopyOnWriteArrayList<>();
 
 	@Setter
@@ -106,7 +108,6 @@ public class PluginManager
 	{
 		this.developerMode = developerMode;
 		this.safeMode = safeMode;
-		this.disableWalkerUpdate = disableWalkerUpdate;
 		this.eventBus = eventBus;
 		this.scheduler = scheduler;
 		this.configManager = configManager;
@@ -179,7 +180,7 @@ public class PluginManager
 		List<Injector> injectors = new ArrayList<>();
 		if (plugins == null)
 		{
-			injectors.add(RuneLite.getInjector());
+			injectors.add(Microbot.getInjector());
 			plugins = getPlugins();
 		}
 		plugins.forEach(pl -> injectors.add(pl.getInjector()));
@@ -551,7 +552,7 @@ public class PluginManager
 
 		try
 		{
-			Injector parent = RuneLite.getInjector();
+			Injector parent = Microbot.getInjector();
 
 			if (deps.size() > 1)
 			{

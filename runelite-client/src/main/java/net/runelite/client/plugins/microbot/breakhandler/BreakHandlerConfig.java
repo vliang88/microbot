@@ -13,7 +13,7 @@ public interface BreakHandlerConfig extends Config {
     @ConfigSection(
             name = "Play Schedule",
             description = "Options related to using a play schedule",
-            position = 5
+            position = 51
     )
     String usePlaySchedule = "usePlaySchedule";
 
@@ -57,22 +57,43 @@ public interface BreakHandlerConfig extends Config {
         return 15;
     }
 
+    // boolean to only use microbreaks
+    @ConfigItem(
+            keyName = "OnlyMicroBreaks",
+            name = "Micro Breaks Only",
+            description = "Only use micro breaks if enabled",
+            position = 4
+    )
+    default boolean onlyMicroBreaks() {
+        return false;
+    }
+
     @ConfigItem(
             keyName = "Logout",
             name = "Logout",
             description = "Logout when taking a break",
-            position = 4
+            position = 5
     )
     default boolean logoutAfterBreak() {
         return true;
     }
 
     @ConfigItem(
+            keyName = "useRandomWorld",
+            name = "Use RandomWorld",
+            description = "Change to a random world once break is finished",
+            position = 6
+    )
+    default boolean useRandomWorld() {
+        return false;
+    }
+
+    @ConfigItem(
             keyName = "UsePlaySchedule",
             name = "Use Play Schedule",
             description = "Enable or disable the use of a play schedule",
-            position = 5,
-            section = "UsePlaySchedule"
+            position = 0,
+            section = usePlaySchedule
     )
     default boolean usePlaySchedule() {
         return false;
@@ -82,8 +103,8 @@ public interface BreakHandlerConfig extends Config {
             keyName = "PlaySchedule",
             name = "Play Schedule",
             description = "Select the play schedule",
-            position = 6,
-            section = "UsePlaySchedule"
+            position = 1,
+            section = usePlaySchedule
     )
     default PlaySchedule playSchedule() {
         return PlaySchedule.MEDIUM_DAY;

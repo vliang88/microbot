@@ -9,6 +9,7 @@ import net.runelite.client.plugins.microbot.playerassist.PlayerAssistConfig;
 import net.runelite.client.plugins.microbot.playerassist.PlayerAssistPlugin;
 import net.runelite.client.plugins.microbot.playerassist.enums.AttackStyle;
 import net.runelite.client.plugins.microbot.playerassist.enums.AttackStyleMapper;
+import net.runelite.client.plugins.microbot.playerassist.enums.State;
 import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
 import net.runelite.client.plugins.microbot.util.combat.Rs2Combat;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
@@ -17,7 +18,6 @@ import net.runelite.client.plugins.microbot.util.npc.Rs2NpcManager;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
 import net.runelite.client.plugins.microbot.util.prayer.Rs2PrayerEnum;
-import net.runelite.client.plugins.microbot.util.tile.Rs2Tile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,8 +48,11 @@ public class AttackNpcScript extends Script {
                 if (!Microbot.isLoggedIn() || !super.run() || !config.toggleCombat())
                     return;
 
+                if(config.state().equals(State.BANKING))
+                    return;
+
                 List<String> npcsToAttack = Arrays.stream(config.attackableNpcs().split(","))
-                        .map(String::trim)
+                        .map(x -> x.trim().toLowerCase())
                         .collect(Collectors.toList());
 
                 double healthPercentage = (double) Microbot.getClient().getBoostedSkillLevel(Skill.HITPOINTS) * 100
@@ -67,24 +70,20 @@ public class AttackNpcScript extends Script {
                 }
                 messageShown = false;
 
-                attackableNpcs = Microbot.getClient().getNpcs().stream()
-                        .filter(npc -> !npc.isDead()
-                                && npc.getWorldLocation().distanceTo(config.centerLocation()) <= config.attackRadius()
-                                && (npc.getInteracting() == null
-                                || npc.getInteracting() == Microbot.getClient().getLocalPlayer())
-                                && npcsToAttack.contains(npc.getName())
-                                && Rs2Npc.hasLineOfSight(npc))
+                attackableNpcs = Rs2Npc.getAttackableNpcs(config.attackReachableNpcs())
+                        .filter(npc -> npc.getWorldLocation().distanceTo(config.centerLocation()) <= config.attackRadius()
+                                && npcsToAttack.contains(npc.getName().toLowerCase()))
                         .sorted(Comparator
-                                .comparing((NPC npc) -> npc.getInteracting() == Microbot.getClient().getLocalPlayer() ? 0 : 1)
-                                .thenComparingInt(npc -> npc.getLocalLocation()
-                                        .distanceTo(Microbot.getClient().getLocalPlayer().getLocalLocation())))
+                                .comparing((NPC npc) -> npc.getInteracting() == Microbot.getClient().getLocalPlayer() ? 0 : 1).thenComparingInt(npc -> Rs2Player.getRs2WorldPoint().distanceToPath(npc.getWorldLocation())))
                         .collect(Collectors.toList());
 
-                if (PlayerAssistPlugin.getCooldown() > 0 || Rs2Combat.inCombat())
+                if (PlayerAssistPlugin.getCooldown() > 0 || Rs2Combat.inCombat()) {
+                    PlayerAssistPlugin.setState(State.COMBAT);
                     return;
+                }
 
                 if (!attackableNpcs.isEmpty()) {
-                    NPC npc = attackableNpcs.get(0);
+                    NPC npc = attackableNpcs.stream().findFirst().orElse(null);
 
                     if (!Rs2Camera.isTileOnScreen(npc.getLocalLocation()))
                         Rs2Camera.turnTo(npc);

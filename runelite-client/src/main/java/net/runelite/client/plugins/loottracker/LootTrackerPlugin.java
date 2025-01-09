@@ -225,6 +225,9 @@ public class LootTrackerPlugin extends Plugin
 	private static final String ORE_PACK_VM_EVENT = "Ore Pack (Volcanic Mine)";
 
 	private static final String WINTERTODT_SUPPLY_CRATE_EVENT = "Supply crate (Wintertodt)";
+	private static final String WINTERTODT_REWARD_CART_EVENT = "Reward cart (Wintertodt)";
+	private static final String WINTERTODT_LOOT_STRING = "You found some loot: ";
+	private static final int WINTERTODT_REGION = 6461;
 
 	private static final String BAG_FULL_OF_GEMS_PERCY_EVENT = "Bag full of gems (Percy)";
 	private static final String BAG_FULL_OF_GEMS_BELONA_EVENT = "Bag full of gems (Belona)";
@@ -1105,6 +1108,12 @@ public class LootTrackerPlugin extends Plugin
 			return;
 		}
 
+		if (regionID == WINTERTODT_REGION && message.startsWith(WINTERTODT_LOOT_STRING))
+		{
+			onInvChange(collectInvItems(LootRecordType.EVENT, WINTERTODT_REWARD_CART_EVENT, client.getBoostedSkillLevel(Skill.FIREMAKING)));
+			return;
+		}
+
 		if (message.equals(IMPLING_CATCH_MESSAGE))
 		{
 			onInvChange(collectInvItems(LootRecordType.EVENT, client.getLocalPlayer().getInteracting().getName()));
@@ -1244,13 +1253,18 @@ public class LootTrackerPlugin extends Plugin
 					case ItemID.HUNTERS_LOOT_SACK_EXPERT:
 					case ItemID.HUNTERS_LOOT_SACK_MASTER:
 						final int itemId = event.getItemId();
+						final Map<String, Integer> levels = new ImmutableMap.Builder<String, Integer>().
+							put("WOODCUTTING", client.getBoostedSkillLevel(Skill.WOODCUTTING)).
+							put("HERBLORE", client.getBoostedSkillLevel(Skill.HERBLORE)).
+							put("HUNTER", client.getBoostedSkillLevel(Skill.HUNTER)).
+							build();
 						onInvChange((((invItems, groundItems, removedItems) ->
 						{
 							int cnt = removedItems.count(itemId);
 							if (cnt > 0)
 							{
 								String name = itemManager.getItemComposition(itemId).getMembersName();
-								addLoot(name, -1, LootRecordType.EVENT, null, invItems, cnt);
+								addLoot(name, -1, LootRecordType.EVENT, levels, invItems, cnt);
 							}
 						})));
 						break;

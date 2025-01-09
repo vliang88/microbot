@@ -13,12 +13,12 @@ import net.runelite.client.plugins.microbot.util.combat.Rs2Combat;
 import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
-import net.runelite.client.plugins.microbot.util.math.Random;
 import net.runelite.client.plugins.microbot.util.math.Rs2Random;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.tile.Rs2Tile;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
+import net.runelite.client.plugins.microbot.woodcutting.enums.WoodcuttingTree;
 import net.runelite.client.plugins.microbot.woodcutting.enums.WoodcuttingWalkBack;
 
 import java.util.*;
@@ -32,7 +32,7 @@ enum State {
 
 public class AutoWoodcuttingScript extends Script {
 
-    public static String version = "1.6.2";
+    public static String version = "1.6.3";
     public boolean cannotLightFire = false;
 
     State state = State.WOODCUTTING;
@@ -98,7 +98,7 @@ public class AutoWoodcuttingScript extends Script {
                             return;
                         }
 
-                        GameObject tree = Rs2GameObject.findObject(config.TREE().getName(), true, config.distanceToStray(), false, getInitialPlayerLocation());
+                        GameObject tree = Rs2GameObject.findReachableObject(config.TREE().getName(), true, config.distanceToStray(), getInitialPlayerLocation(), config.TREE().equals(WoodcuttingTree.REDWOOD),config.TREE().getAction());
 
                         if (tree != null) {
                             if (Rs2GameObject.interact(tree, config.TREE().getAction())) {
@@ -163,7 +163,7 @@ public class AutoWoodcuttingScript extends Script {
         if (!isFiremake()) {
             Rs2Inventory.waitForInventoryChanges(() -> {
                 Rs2Inventory.use("tinderbox");
-                sleep(Random.random(300, 600));
+                sleep(Rs2Random.between(300, 600));
                 Rs2Inventory.use(config.TREE().getLog());
             });
         }
@@ -192,7 +192,7 @@ public class AutoWoodcuttingScript extends Script {
 
             // Return a random point from the closest points
             if (!closestPoints.isEmpty()) {
-                int randomIndex = Random.random(0, closestPoints.size());
+                int randomIndex = Rs2Random.between(0, closestPoints.size());
                 return closestPoints.get(randomIndex);
             }
         }
@@ -207,8 +207,9 @@ public class AutoWoodcuttingScript extends Script {
     
     private void fletchArrowShaft(AutoWoodcuttingConfig config) {
         Rs2Inventory.combineClosest("knife", config.TREE().getLog());
-        Rs2Random.waitEx(1200, 300);
+        sleepUntil(Rs2Widget::isProductionWidgetOpen, 5000);
         Rs2Widget.clickWidget("arrow shafts");
+        Rs2Player.waitForAnimation();
         sleepUntil(() -> !isFlectching(), 5000);
     }
     
@@ -225,7 +226,7 @@ public class AutoWoodcuttingScript extends Script {
     }
 
     private void walkBack(AutoWoodcuttingConfig config) {
-        Rs2Walker.walkTo(new WorldPoint(calculateReturnPoint(config).getX() - Random.random(-1, 1), calculateReturnPoint(config).getY() - Random.random(-1, 1), calculateReturnPoint(config).getPlane()));
+        Rs2Walker.walkTo(new WorldPoint(calculateReturnPoint(config).getX() - Rs2Random.between(-1, 1), calculateReturnPoint(config).getY() - Rs2Random.between(-1, 1), calculateReturnPoint(config).getPlane()));
         sleepUntil(() -> Rs2Player.getWorldLocation().distanceTo(calculateReturnPoint(config)) <= 4);
     }
 
