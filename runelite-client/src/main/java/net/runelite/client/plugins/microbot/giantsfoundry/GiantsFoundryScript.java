@@ -63,6 +63,7 @@ public class GiantsFoundryScript extends Script {
                 } else {
                     if (weapon != null) {
                         handleGameLoop();
+
                     } else {
                         getCommission();
                         selectMould();
@@ -116,6 +117,7 @@ public class GiantsFoundryScript extends Script {
             Microbot.getMouse().click(forte.getBounds());
             sleep(600, 1200);
             MouldHelper.selectBest();
+            sleep(600, 1200);
         }
 
         Widget blades = Rs2Widget.findWidget("Blades", null);
@@ -123,12 +125,14 @@ public class GiantsFoundryScript extends Script {
             Microbot.getMouse().click(blades.getBounds());
             sleep(600, 1200);
             MouldHelper.selectBest();
+            sleep(600, 1200);
         }
         Widget tips = Rs2Widget.findWidget("Tips", null);
         if (tips != null) {
             Microbot.getMouse().click(tips.getBounds());
             sleep(600, 1200);
             MouldHelper.selectBest();
+            sleep(600, 1200);
             Microbot.getMouse().click(forte.getBounds());
         }
         Widget setMould = Rs2Widget.getWidget(47054854);
@@ -154,12 +158,17 @@ public class GiantsFoundryScript extends Script {
             return;
         }
 
-        if (!Rs2Inventory.hasItemAmount(config.FirstBar().getName(), 14)
-                && !Rs2Inventory.hasItemAmount(config.FirstBar().getName(), 14) && !canPour()) {
+        if (!Rs2Inventory.hasItemAmount(config.FirstBar().getName(), config.firstBarAmount())
+                && !Rs2Inventory.hasItemAmount(config.SecondBar().getName(), config.secondBarAmount()) && !canPour()) {
             Rs2Bank.useBank();
             //check if inv is empty and deposit all inv items
-            Rs2Bank.withdrawX(true, config.FirstBar().getName(), 14);
-            Rs2Bank.withdrawX(true, config.SecondBar().getName(), 14);
+            if(Rs2Bank.count(config.FirstBar().getName()) < config.firstBarAmount() || Rs2Bank.count(config.SecondBar().getName()) < config.secondBarAmount()) {
+                Microbot.log("Insufficient bars in bank to continue");
+                this.shutdown();
+                return;
+            }
+            Rs2Bank.withdrawX(true, config.FirstBar().getName(), config.firstBarAmount());
+            Rs2Bank.withdrawX(true, config.SecondBar().getName(), config.secondBarAmount());
             Rs2Bank.closeBank();
             return;
         }
@@ -229,8 +238,13 @@ public class GiantsFoundryScript extends Script {
         if (remainingDuration == 0 && change == 0 && state != State.CRAFTING_WEAPON) {
             setState(State.CRAFTING_WEAPON);
         }
-        if (remainingDuration != 0) return;
-        
+
+        if(!Rs2Player.isAnimating(3000)) {
+            Microbot.log("Not animating, doAction -> true");
+            doAction = true;
+        }
+        if (!doAction && remainingDuration != 0) return;
+
         if (change < 0) {
             setState(State.COOLING_DOWN);
         } else if (change > 0) {
@@ -268,7 +282,6 @@ public class GiantsFoundryScript extends Script {
         }
 
         doAction = false;
-
     }
 
 

@@ -23,6 +23,20 @@ public class Rs2UiHelper {
                 !(rectangle.getY() < 0.0);
     }
 
+    public static boolean isRectangleWithinCanvas(Rectangle rectangle) {
+        int canvasHeight = Microbot.getClient().getCanvasHeight();
+        int canvasWidth = Microbot.getClient().getCanvasWidth();
+
+        return rectangle.getX() >= 0.0 &&
+                rectangle.getY() >= 0.0 &&
+                rectangle.getX() + rectangle.getWidth() <= (double) canvasWidth &&
+                rectangle.getY() + rectangle.getHeight() <= (double) canvasHeight;
+    }
+
+    public static boolean isRectangleWithinRectangle(Rectangle main, Rectangle sub) {
+        return main.contains(sub);
+    }
+
     public static Point getClickingPoint(Rectangle rectangle, boolean randomize) {
         if (rectangle == null) return new Point(1, 1);
         if (rectangle.getX() == 1 && rectangle.getY() == 1) return new Point(1, 1);
@@ -85,4 +99,13 @@ public class Rs2UiHelper {
         return entry.getGameObject() != null;
     }
 
+    /**
+     * Strips color tags from the provided text.
+     *
+     * @param text the text from which to strip color tags.
+     * @return the text without color tags.
+     */
+    public static String stripColTags(String text) {
+        return text != null ? text.replaceAll("<col=[^>]+>|</col>", "") : "";
+    }
 }

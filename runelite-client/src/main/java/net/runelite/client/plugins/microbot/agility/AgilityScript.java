@@ -18,6 +18,7 @@ import net.runelite.client.plugins.microbot.util.magic.Rs2Magic;
 import net.runelite.client.plugins.microbot.util.models.RS2Item;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
+import net.runelite.client.plugins.microbot.util.antiban.Rs2Antiban;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -29,9 +30,8 @@ import java.util.stream.Collectors;
 
 import static net.runelite.api.NullObjectID.*;
 import static net.runelite.api.ObjectID.LADDER_36231;
-import static net.runelite.client.plugins.microbot.util.math.Random.random;
-import static net.runelite.client.plugins.worldmap.AgilityCourseLocation.GNOME_STRONGHOLD_AGILITY_COURSE;
-import static net.runelite.client.plugins.worldmap.AgilityCourseLocation.PRIFDDINAS_AGILITY_COURSE;
+import static net.runelite.client.plugins.microbot.agility.enums.AgilityCourseName.GNOME_STRONGHOLD_AGILITY_COURSE;
+import static net.runelite.client.plugins.microbot.agility.enums.AgilityCourseName.PRIFDDINAS_AGILITY_COURSE;
 
 public class AgilityScript extends Script {
 
@@ -49,11 +49,16 @@ public class AgilityScript extends Script {
     public List<AgilityObstacleModel> rellekkaCourse = new ArrayList<>();
     public List<AgilityObstacleModel> ardougneCourse = new ArrayList<>();
     public List<AgilityObstacleModel> prifddinasCourse = new ArrayList<>();
-
+    public List<AgilityObstacleModel> apeatollCourse = new ArrayList<>();
+    public List<AgilityObstacleModel> wyrmbasicCourse = new ArrayList<>();
+    public List<AgilityObstacleModel> wyrmadvancedCourse = new ArrayList<>();
+    public List<AgilityObstacleModel> shayzienbasicCourse = new ArrayList<>();
+    public List<AgilityObstacleModel> shayzienadvancedCourse = new ArrayList<>();
 
     WorldPoint startCourse = null;
 
     public static int currentObstacle = 0;
+    private static boolean isWalkingToStart = false;
 
     public static final Set<Integer> PORTAL_OBSTACLE_IDS = ImmutableSet.of(
             // Prifddinas portals
@@ -84,6 +89,16 @@ public class AgilityScript extends Script {
                 return ardougneCourse;
             case PRIFDDINAS_AGILITY_COURSE:
                 return prifddinasCourse;
+            case APE_ATOLL_AGILITY_COURSE:
+                return apeatollCourse;
+            case COLOSSAL_WYRM_BASIC_COURSE:
+                return wyrmbasicCourse;
+            case COLOSSAL_WYRM_ADVANCED_COURSE:
+                return wyrmadvancedCourse;
+            case SHAYZIEN_BASIC_COURSE:
+                return shayzienbasicCourse;
+            case SHAYZIEN_ADVANCED_COURSE:
+                return shayzienadvancedCourse;
             default:
                 return canafisCourse;
         }
@@ -124,12 +139,30 @@ public class AgilityScript extends Script {
             case PRIFDDINAS_AGILITY_COURSE:
                 startCourse = new WorldPoint(3253, 6109, 0);
                 break;
+            case APE_ATOLL_AGILITY_COURSE:
+                startCourse = new WorldPoint(2754, 2742, 0);
+                break;
+            case COLOSSAL_WYRM_BASIC_COURSE:
+                startCourse = new WorldPoint(1652, 2931, 0);
+                break;
+            case COLOSSAL_WYRM_ADVANCED_COURSE:
+                startCourse = new WorldPoint(1652, 2931, 0);
+                break;
+            case SHAYZIEN_BASIC_COURSE:
+                startCourse = new WorldPoint(1551, 3632, 0);
+                break;
+            case SHAYZIEN_ADVANCED_COURSE:
+                startCourse = new WorldPoint(1551, 3632, 0);
+                break;
         }
     }
 
     public boolean run(MicroAgilityConfig config) {
         Microbot.enableAutoRunOn = true;
         currentObstacle = 0;
+
+        Rs2Antiban.resetAntibanSettings();
+        Rs2Antiban.antibanSetupTemplates.applyAgilitySetup();
         init(config);
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
@@ -147,11 +180,9 @@ public class AgilityScript extends Script {
 
                 // Eat food.
                 Rs2Player.eatAt(config.hitpoints());
-                if (random(1, 10) == 2 && config.pauseRandomly()) {
-                    sleep(random(config.pauseMinTime(), config.pauseMaxTime()));
-                }
 
-                if (Rs2Player.isMoving()) return;
+                if(isWalkingToStart) Microbot.log("isWalkingToStart: true");
+                else if (Rs2Player.isMoving()) return;
                 if (Rs2Player.isAnimating()) return;
 
                 if (currentObstacle >= getCurrentCourse(config).size()) {
@@ -178,6 +209,8 @@ public class AgilityScript extends Script {
                         }
                         if (Rs2Player.getWorldLocation().distanceTo(startCourse) < 100) {//extra check for prif course
                             Rs2Walker.walkTo(startCourse, 8);
+                            Microbot.log("Going back to course's starting point");
+                            isWalkingToStart = true;
                             return;
                         }
                     }
@@ -236,6 +269,7 @@ public class AgilityScript extends Script {
                         }
 
                         if (Rs2GameObject.interact(gameObject)) {
+                            isWalkingToStart = false;
                             //LADDER_36231 in prifddinas does not give experience
                             if (gameObject.getId() != LADDER_36231 && waitForAgilityObstabcleToFinish(agilityExp))
                                 break;

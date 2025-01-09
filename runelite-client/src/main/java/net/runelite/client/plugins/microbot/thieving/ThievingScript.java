@@ -16,7 +16,6 @@ import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.skillcalculator.skills.MagicAction;
-import net.runelite.client.plugins.timersandbuffs.GameTimer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,14 +25,12 @@ import java.util.stream.Collectors;
 
 public class ThievingScript extends Script {
 
-    public static String version = "1.5.8";
+    public static String version = "1.6.1";
     ThievingConfig config;
-
-    boolean isPickpocketting = false;
 
     public boolean run(ThievingConfig config) {
         this.config = config;
-        Rs2Walker.setTarget(null);
+        Microbot.isCantReachTargetDetectionEnabled = true;
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 if (!Microbot.isLoggedIn()) return;
@@ -43,26 +40,25 @@ public class ThievingScript extends Script {
                     initialPlayerLocation = Rs2Player.getWorldLocation();
                 }
 
-                if (isStunned())
+                if (Rs2Player.isStunned())
                     return;
+
 
                 List<Rs2Item> foods = Rs2Inventory.getInventoryFood();
 
-                if (foods.isEmpty()) {
-                    openCoinPouches(1);
-                    bank();
-                    return;
+                if (config.useFood()) {
+                    handleFood(foods);
                 }
+
                 if (Rs2Inventory.isFull()) {
                     Rs2Player.eatAt(99);
                     dropItems(foods);
                 }
-                if (Rs2Player.eatAt(config.hitpoints())) {
-                    return;
-                }
+
                 if (config.shadowVeil()) {
                     handleShadowVeil();
                 }
+
                 openCoinPouches(config.coinPouchTreshHold());
                 wearDodgyNecklace();
                 pickpocket();
@@ -71,6 +67,25 @@ public class ThievingScript extends Script {
             }
         }, 0, 600, TimeUnit.MILLISECONDS);
         return true;
+    }
+
+    private void handleFood(List<Rs2Item> food) {
+        if (food.isEmpty()) {
+            openCoinPouches(1);
+            bank();
+            return;
+        }
+
+        if (Rs2Player.eatAt(config.hitpoints())) {
+            return;
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+        Rs2Walker.setTarget(null);
+        Microbot.isCantReachTargetDetectionEnabled = false;
     }
 
     private void handleElves() {
@@ -103,6 +118,7 @@ public class ThievingScript extends Script {
     }
 
     private void openCoinPouches(int amt) {
+        if (config.THIEVING_NPC() == ThievingNpc.WEALTHY_CITIZEN && Rs2Player.isAnimating(3000)) return;
         if (Rs2Inventory.hasItemAmount("coin pouch", amt, true)) {
             Rs2Inventory.interact("coin pouch", "Open-all");
         }
@@ -115,24 +131,22 @@ public class ThievingScript extends Script {
     }
 
     private void pickpocket() {
-        if (config.THIEVING_NPC() != ThievingNpc.NONE) {
-            if (config.THIEVING_NPC() == ThievingNpc.WEALTHY_CITIZEN) {
-                handleWealthyCitizen();
-            } else if (config.THIEVING_NPC() == ThievingNpc.ELVES) {
-                handleElves();
+        if (config.THIEVING_NPC() == ThievingNpc.WEALTHY_CITIZEN) {
+            handleWealthyCitizen();
+        } else if (config.THIEVING_NPC() == ThievingNpc.ELVES) {
+            handleElves();
+        } else {
+            Map<NPC, HighlightedNpc> highlightedNpcs =  net.runelite.client.plugins.npchighlight.NpcIndicatorsPlugin.getHighlightedNpcs();
+            if (highlightedNpcs.isEmpty()) {
+                if (Rs2Npc.pickpocket(config.THIEVING_NPC().getName())) {
+                    Rs2Walker.setTarget(null);
+                    sleep(50, 250);
+                } else if (Rs2Npc.getNpc(config.THIEVING_NPC().getName()) == null){
+                    Rs2Walker.walkTo(initialPlayerLocation);
+                }
             } else {
-                Map<NPC, HighlightedNpc> highlightedNpcs =  net.runelite.client.plugins.npchighlight.NpcIndicatorsPlugin.getHighlightedNpcs();
-                if (highlightedNpcs.isEmpty()) {
-                    if (Rs2Npc.pickpocket(config.THIEVING_NPC().getName())) {
-                        Rs2Walker.setTarget(null);
-                        sleep(50, 250);
-                    } else if (Rs2Npc.getNpc(config.THIEVING_NPC().getName()) == null){
-                        Rs2Walker.walkTo(initialPlayerLocation);
-                    }
-                } else {
-                    if (Rs2Npc.pickpocket(highlightedNpcs)) {
-                        sleep(50, 250);
-                    }
+                if (Rs2Npc.pickpocket(highlightedNpcs)) {
+                    sleep(50, 250);
                 }
             }
         }
@@ -146,18 +160,11 @@ public class ThievingScript extends Script {
                 .collect(Collectors.toList());
         NPC wealthyCitizenToPickpocket = wealthyCitizenInteracting.stream().findFirst().orElse(null);
         if (wealthyCitizenToPickpocket != null) {
-            if (!isPickpocketting && Rs2Npc.pickpocket(wealthyCitizenToPickpocket)) {
+            if (!Rs2Player.isAnimating(3000) && Rs2Npc.pickpocket(wealthyCitizenToPickpocket)) {
                 Microbot.status = "Pickpocketting " + wealthyCitizenToPickpocket.getName();
                 sleep(300, 600);
-                isPickpocketting = true;
             }
-        } else {
-            isPickpocketting = false;
         }
-    }
-
-    private boolean isStunned() {
-        return Microbot.isTimerActive(GameTimer.PICKPOCKET_STUN);
     }
 
     private void handleShadowVeil() {
@@ -189,11 +196,6 @@ public class ThievingScript extends Script {
                 sleep(75,200);
                 Rs2Bank.withdrawAll(true,"Cosmic rune", true);
                 sleep(75,200);
-                if (config.equipBook()) {
-                    Rs2Bank.withdrawAndEquip("book of the dead");
-                } else {
-                    Rs2Bank.withdrawItem(true, "book of the dead");
-                }
             }
             Rs2Bank.closeBank();
         }

@@ -2,12 +2,16 @@ package net.runelite.client.plugins.microbot.scurrius;
 
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Projectile;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.ProjectileMoved;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.microbot.magic.orbcharger.enums.OrbChargerState;
+import net.runelite.client.plugins.microbot.scurrius.enums.State;
+import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
@@ -42,6 +46,7 @@ public class ScurriusPlugin extends Plugin {
         if (overlayManager != null) {
             overlayManager.add(exampleOverlay);
         }
+        ScurriusScript.state = State.BANKING;
         scurriusScript.run(config);
     }
 
@@ -51,8 +56,12 @@ public class ScurriusPlugin extends Plugin {
     }
 
     @Subscribe
-    private void onProjectileMoved(ProjectileMoved event) {
-        final Projectile projectile = event.getProjectile();
-        scurriusScript.prayAgainstProjectiles(projectile);
+    public void onChatMessage(ChatMessage event) {
+        if (event.getType() != ChatMessageType.GAMEMESSAGE) return;
+        
+        if (event.getMessage().equalsIgnoreCase("oh dear, you are dead!") && config.shutdownAfterDeath()) {
+            Rs2Walker.setTarget(null);
+            shutDown();
+        }
     }
 }

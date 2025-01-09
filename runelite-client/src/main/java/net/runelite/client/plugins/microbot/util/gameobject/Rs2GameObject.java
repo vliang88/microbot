@@ -9,6 +9,8 @@ import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.antiban.Rs2AntibanSettings;
 import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
 import net.runelite.client.plugins.microbot.util.camera.Rs2Camera;
+import net.runelite.client.plugins.microbot.util.coords.Rs2WorldArea;
+import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
 import net.runelite.client.plugins.microbot.util.misc.Rs2UiHelper;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
@@ -22,6 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.runelite.api.NullObjectID.NULL_34810;
+import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
 
 /**
  * TODO: This class should be cleaned up, less methods by passing filters instead of multiple parameters
@@ -473,6 +476,106 @@ public class Rs2GameObject {
         return null;
     }
 
+    /**
+ * Finds a reachable game object by name within a specified distance from an anchor point, optionally checking for a specific action.
+ *
+ * @param objectName The name of the game object to find.
+ * @param exact Whether to match the name exactly or partially.
+ * @param distance The maximum distance from the anchor point to search for the game object.
+ * @param anchorPoint The point from which to measure the distance.
+ * @param checkAction Whether to check for a specific action on the game object.
+ * @param action The action to check for if checkAction is true.
+ * @return The nearest reachable game object that matches the criteria, or null if none is found.
+ */
+public static GameObject findReachableObject(String objectName, boolean exact, int distance, WorldPoint anchorPoint, boolean checkAction, String action) {
+    List<GameObject> gameObjects = getGameObjectsWithinDistance(distance, anchorPoint);
+    if (gameObjects == null) {
+        return null;
+    }
+
+    return gameObjects.stream()
+            .filter(Rs2GameObject::isReachable)
+            .filter(gameObject -> {
+                try {
+                    ObjectComposition objComp = convertGameObjectToObjectComposition(gameObject);
+                    if (objComp == null) return false;
+
+                    String compName = objComp.getName();
+                    if (compName == null || "null".equals(compName)) {
+                        if (objComp.getImpostor() != null) {
+                            compName = objComp.getImpostor().getName();
+                        } else {
+                            return false;
+                        }
+                    }
+
+                    if (compName == null) return false;
+
+                    if (checkAction) {
+                        if (!hasAction(objComp, action)) return false;
+                    }
+
+                    if (exact) {
+                        return compName.equalsIgnoreCase(objectName);
+                    } else {
+                        return compName.toLowerCase().contains(objectName.toLowerCase());
+                    }
+
+                } catch (Exception e) {
+                    return false;
+                }
+            }).min(Comparator.comparingInt(o -> Rs2Player.getRs2WorldPoint().distanceToPath(o.getWorldLocation())))
+            .orElse(null);
+}
+
+/**
+ * Finds a reachable game object by name within a specified distance from an anchor point.
+ *
+ * @param objectName The name of the game object to find.
+ * @param exact Whether to match the name exactly or partially.
+ * @param distance The maximum distance from the anchor point to search for the game object.
+ * @param anchorPoint The point from which to measure the distance.
+ * @return The nearest reachable game object that matches the criteria, or null if none is found.
+ */
+public static GameObject findReachableObject(String objectName, boolean exact, int distance, WorldPoint anchorPoint) {
+    List<GameObject> gameObjects = getGameObjectsWithinDistance(distance, anchorPoint);
+    if (gameObjects == null) {
+        return null;
+    }
+
+    return gameObjects.stream()
+            .filter(Rs2GameObject::isReachable)
+            .sorted(Comparator.comparingInt(o -> Rs2Player.getRs2WorldPoint().distanceToPath(o.getWorldLocation())))
+            .filter(gameObject -> {
+                try {
+                    ObjectComposition objComp = convertGameObjectToObjectComposition(gameObject);
+                    if (objComp == null) return false;
+
+                    String compName = objComp.getName();
+                    if (compName == null || "null".equals(compName)) {
+                        if (objComp.getImpostor() != null) {
+                            compName = objComp.getImpostor().getName();
+                        } else {
+                            return false;
+                        }
+                    }
+
+                    if (compName == null) return false;
+
+                    if (exact) {
+                        return compName.equalsIgnoreCase(objectName);
+                    } else {
+                        return compName.toLowerCase().contains(objectName.toLowerCase());
+                    }
+                } catch (Exception e) {
+                    return false;
+                }
+            })
+            .findFirst()
+            .orElse(null);
+}
+
+
     public static boolean hasAction(ObjectComposition objComp, String action) {
         boolean result;
 
@@ -640,6 +743,7 @@ public class Rs2GameObject {
         return null;
     }
 
+    @Deprecated(since="1.5.7 - use signature with Integer[] ids", forRemoval = true)
     public static TileObject findObject(List<Integer> ids) {
         for (int id : ids) {
             TileObject object = findObjectById(id);
@@ -668,7 +772,7 @@ public class Rs2GameObject {
      * @param ids
      * @return
      */
-    public static TileObject findObject(int[] ids) {
+    public static TileObject findObject(Integer[] ids) {
         List<GameObject> gameObjects = getGameObjects();
         if (gameObjects == null) return null;
 
@@ -1116,14 +1220,15 @@ public class Rs2GameObject {
             int index = 0;
             if (action != null) {
                 String[] actions;
-                if (objComp.getImpostorIds() != null) {
+                if (objComp.getImpostorIds() != null && objComp.getImpostor() != null) {
                     actions = objComp.getImpostor().getActions();
                 } else {
                     actions = objComp.getActions();
                 }
 
                 for (int i = 0; i < actions.length; i++) {
-                    if (action.equalsIgnoreCase(actions[i])) {
+                    if (actions[i] == null) continue;
+                    if (action.equalsIgnoreCase(Rs2UiHelper.stripColTags(actions[i]))) {
                         index = i;
                         break;
                     }
@@ -1155,6 +1260,14 @@ public class Rs2GameObject {
             if (!Rs2Camera.isTileOnScreen(object.getLocalLocation())) {
                 Rs2Camera.turnTo(object);
             }
+
+            // both hands must be free before using MINECART
+            if (objComp.getName().toLowerCase().contains("train cart")) {
+                Rs2Equipment.unEquip(EquipmentInventorySlot.WEAPON);
+                Rs2Equipment.unEquip(EquipmentInventorySlot.SHIELD);
+                sleepUntil(() -> Rs2Equipment.get(EquipmentInventorySlot.WEAPON) == null && Rs2Equipment.get(EquipmentInventorySlot.SHIELD) == null);
+            }
+
 
             Microbot.doInvoke(new NewMenuEntry(param0, param1, menuAction.getId(), object.getId(), -1, action, objComp.getName(), object), Rs2UiHelper.getObjectClickbox(object));
 // MenuEntryImpl(getOption=Use, getTarget=Barrier, getIdentifier=43700, getType=GAME_OBJECT_THIRD_OPTION, getParam0=53, getParam1=51, getItemId=-1, isForceLeftClick=true, getWorldViewId=-1, isDeprioritized=false)
@@ -1253,6 +1366,53 @@ public class Rs2GameObject {
     }
 
     /**
+     * Returns the object is reachable from the player
+     * @param tileObject
+     * @return boolean
+     */
+    public static boolean isReachable(GameObject tileObject) {
+        Rs2WorldArea gameObjectArea = new Rs2WorldArea(Objects.requireNonNull(getWorldArea(tileObject)));
+        List<WorldPoint> interactablePoints = gameObjectArea.getInteractable();
+
+        if (interactablePoints.isEmpty()) {
+            interactablePoints.addAll(gameObjectArea.offset(1).toWorldPointList());
+            interactablePoints.removeIf(gameObjectArea::contains);
+        }
+
+        WorldPoint walkableInteractPoint = interactablePoints.stream()
+                .filter(Rs2Tile::isWalkable)
+                .filter(Rs2Tile::isTileReachable)
+                .findFirst()
+                .orElse(null);
+        return walkableInteractPoint != null;
+    }
+
+    public static WorldArea getWorldArea(GameObject gameObject)
+    {
+        if (!gameObject.getLocalLocation().isInScene())
+        {
+            return null;
+        }
+
+        LocalPoint localSWTile = new LocalPoint(
+                gameObject.getLocalLocation().getX() - (gameObject.sizeX() - 1) * Perspective.LOCAL_TILE_SIZE / 2,
+                gameObject.getLocalLocation().getY() - (gameObject.sizeY() - 1) * Perspective.LOCAL_TILE_SIZE / 2
+        );
+
+        LocalPoint localNETile = new LocalPoint(
+                gameObject.getLocalLocation().getX() + (gameObject.sizeX() - 1) * Perspective.LOCAL_TILE_SIZE / 2,
+                gameObject.getLocalLocation().getY() + (gameObject.sizeY() - 1) * Perspective.LOCAL_TILE_SIZE / 2
+        );
+
+
+
+        return new Rs2WorldArea(
+                WorldPoint.fromLocal(Microbot.getClient(), localSWTile),
+                WorldPoint.fromLocal(Microbot.getClient(), localNETile)
+        );
+    }
+
+    /**
      * Hovers over the given game object using the natural mouse.
      *
      * @param object The game object to hover over.
@@ -1260,7 +1420,8 @@ public class Rs2GameObject {
      */
     public static boolean hoverOverObject(TileObject object) {
         if (!Rs2AntibanSettings.naturalMouse) {
-            Microbot.log("Natural mouse is not enabled, can't hover");
+            if(Rs2AntibanSettings.devDebug)
+                Microbot.log("Natural mouse is not enabled, can't hover");
             return false;
         }
         Point point = Rs2UiHelper.getClickingPoint(Rs2UiHelper.getObjectClickbox(object), true);

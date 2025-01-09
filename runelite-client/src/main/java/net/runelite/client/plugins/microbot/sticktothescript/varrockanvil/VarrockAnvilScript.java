@@ -2,7 +2,6 @@ package net.runelite.client.plugins.microbot.sticktothescript.varrockanvil;
 
 import net.runelite.api.ItemID;
 import net.runelite.api.Skill;
-import net.runelite.api.TileObject;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
@@ -19,7 +18,6 @@ import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
-import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +31,7 @@ enum State {
 
 public class VarrockAnvilScript extends Script {
 
-    public static String version = "1.0.0";
+    public static String version = "1.0.1";
     public State state = State.BANKING;
     public String debug = "";
     private boolean expectingXPDrop = false;
@@ -85,89 +83,90 @@ public class VarrockAnvilScript extends Script {
                 return;
             }
 
-           switch (state) {
-            case SMITHING:
-                if (Rs2Inventory.count(barType.toString()) < anvilItem.getRequiredBars()) {
-                    debug("Out of bars");
-                    return;
-                }
+            switch (state) {
+                case SMITHING:
+                    if (Rs2Inventory.count(barType.toString()) < anvilItem.getRequiredBars()) {
+                        debug("Out of bars");
+                        return;
+                    }
 
-                if (expectingXPDrop && Rs2Player.waitForXpDrop(Skill.SMITHING, 4500)) {
-                    debug("Smithing in progress");
-                    Rs2Antiban.actionCooldown();
-                    Rs2Antiban.takeMicroBreakByChance();
-                    sleep(256, 789);
-                    return;
-                }
+                    if (expectingXPDrop && Rs2Player.waitForXpDrop(Skill.SMITHING, 4500)) {
+                        debug("Smithing in progress");
+                        Rs2Antiban.actionCooldown();
+                        Rs2Antiban.takeMicroBreakByChance();
+                        sleep(256, 789);
+                        return;
+                    }
 
-                TileObject anvilTile = Rs2GameObject.findObjectById(AnvilIDs.get(0));
+//                TileObject anvilTile = Rs2GameObject.findObjectById(AnvilIDs.get(0));
 
-                if (Rs2GameObject.interact(anvilTile, true)) {
-                    debug("Using anvil");
+                    if (Rs2GameObject.interact(2097)) {
+                        debug("Using anvil");
 
-                    // Wait until anvil screen is open
-                    sleepUntil(() -> Rs2Widget.getWidget(AnvilContainerWidgetID, 1) != null, 5000);
-                    sleep(186, 480);
+                        // Wait until anvil screen is open
+                        sleepUntil(() -> Rs2Widget.getWidget(AnvilContainerWidgetID, 1) != null, 10000);
+                        sleep(186, 480);
 
-                    if (Rs2Widget.getWidget(AnvilContainerWidgetID, 1) != null) {
-                        if (Microbot.getVarbitPlayerValue(AnvilMakeVarbitPlayer) < Rs2Inventory.count(barType.getId())) {
-                            debug("Selecting 'All' in the anvil");
-                            Rs2Widget.clickWidget(312, 7);
+                        if (Rs2Widget.getWidget(AnvilContainerWidgetID, 1) != null) {
+                            if (Microbot.getVarbitPlayerValue(AnvilMakeVarbitPlayer) < Rs2Inventory.count(barType.getId())) {
+                                debug("Selecting 'All' in the anvil");
+                                Rs2Widget.clickWidget(312, 7);
+                                sleep(186, 480);
+                            }
+
+                            Rs2Widget.clickWidget(AnvilContainerWidgetID, anvilItem.getChildId());
+                            expectingXPDrop = true;
                             sleep(186, 480);
                         }
+                    } else {
+                        if (Rs2Player.isMoving()) {
+                            return;
+                        }
 
-                        Rs2Widget.clickWidget(AnvilContainerWidgetID, anvilItem.getChildId());
-                        expectingXPDrop = true;
-                        sleep(186, 480);
+//                    debug("Walking to anvil");
+//                    Rs2Walker.walkTo(AnvilLocation, 8);
+//                    sleep(180, 540);
                     }
-                } else {
+
+                    break;
+
+                case BANKING:
+                    debug("Banking");
+                    bank(barType);
+                    break;
+
+                case WALK_TO_BANK:
                     if (Rs2Player.isMoving()) {
                         return;
                     }
 
+                    if (!Rs2Player.isRunEnabled()) {
+                        debug("Enabled run for bank");
+                        Rs2Player.toggleRunEnergy(true);
+                    }
+                    Rs2Bank.openBank();
+
+//               debug("Walking to bank");
+//               Rs2Walker.walkTo(BankLocation, 10);
+                    break;
+
+                case WALK_TO_ANVIL:
+                    if (Rs2Player.isMoving()) {
+                        return;
+                    }
+
+                    if (!Rs2Player.isRunEnabled()) {
+                        debug("Enabled run to anvil");
+                        Rs2Player.toggleRunEnergy(true);
+                    }
+
                     debug("Walking to anvil");
-                    Rs2Walker.walkTo(AnvilLocation, 8);
-                    sleep(180, 540);
-                }
+                    Rs2Walker.walkTo(AnvilLocation, 10);
+                    break;
 
-                break;
-
-            case BANKING:
-                debug("Banking");
-                bank(barType);
-                break;
-
-           case WALK_TO_BANK:
-               if (Rs2Player.isMoving()) {
-                   return;
-               }
-
-               if (!Rs2Player.isRunEnabled()) {
-                   debug("Enabled run for bank");
-                   Rs2Player.toggleRunEnergy(true);
-               }
-
-               debug("Walking to bank");
-               Rs2Walker.walkTo(BankLocation, 10);
-               break;
-
-           case WALK_TO_ANVIL:
-               if (Rs2Player.isMoving()) {
-                   return;
-               }
-
-               if (!Rs2Player.isRunEnabled()) {
-                   debug("Enabled run for fishing spot");
-                   Rs2Player.toggleRunEnergy(true);
-               }
-
-               debug("Walking to anvil");
-               Rs2Walker.walkTo(AnvilLocation, 10);
-               break;
-
-            default:
-                break;
-           }
+                default:
+                    break;
+            }
 
             Rs2Antiban.actionCooldown();
             Rs2Antiban.takeMicroBreakByChance();

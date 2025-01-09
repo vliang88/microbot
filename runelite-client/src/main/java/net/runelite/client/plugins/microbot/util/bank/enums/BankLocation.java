@@ -28,7 +28,9 @@ public enum BankLocation {
     CANIFIS(new WorldPoint(3512, 3480, 0)),
     CASTLE_WARS(new WorldPoint(2443, 3083, 0)),
     CATHERBY(new WorldPoint(2808, 3441, 0)),
+    CLAN_HALL(new WorldPoint(1747, 5476, 0)),
     COOKS_GUILD(new WorldPoint(3147,3450,0)),
+    CORSAIR_COVE(new WorldPoint(2570, 2864, 0)),
     CRAFTING_GUILD(new WorldPoint(2936, 3281, 0)),
     DIHN_BANK(new WorldPoint(1640, 3944, 0)),
     DRAYNOR(new WorldPoint(3092, 3243, 0)),
@@ -72,6 +74,7 @@ public enum BankLocation {
     PEST_CONTROL(new WorldPoint(2667, 2653, 0)),
     PISCARILIUS(new WorldPoint(1803, 3790, 0)),
     PORT_KHAZARD(new WorldPoint(2664, 3161, 0)),
+    PORT_PHASMATYS(new WorldPoint(3688, 3467, 0)),
     PRIFDDINAS(new WorldPoint(3257, 6106, 0)),
     ROGUES_DEN_EMERALD_BENEDICT(new WorldPoint(3043, 4973, 1)),
     ROGUES_DEN_CHEST(new WorldPoint(3040, 4969, 1)),
@@ -100,6 +103,10 @@ public enum BankLocation {
 
     private final WorldPoint worldPoint;
 
+    private boolean isMember() {
+        return Rs2Player.isMember() && Rs2Player.isInMemberWorld();
+    }
+
     public boolean hasRequirements() {
         boolean hasLineOfSight = Microbot.getClient().getLocalPlayer().getWorldArea().hasLineOfSightTo(Microbot.getClient().getTopLevelWorldView(), worldPoint);
         switch (this) {
@@ -110,11 +117,11 @@ public enum BankLocation {
                         (Rs2Equipment.isWearing("max cape") || Rs2Equipment.isWearing("max hood")) ||
                         (Rs2Equipment.isWearing("crafting cape") || Rs2Equipment.isWearing("crafting hood"));
 
-                if (hasLineOfSight && Rs2Player.isMember() && (hasMaxedCrafting || hasFaladorHardDiary)) return true;
-                return Rs2Player.isMember() && isWearingCraftingGuild &&
+                if (hasLineOfSight && isMember() && (hasMaxedCrafting || hasFaladorHardDiary)) return true;
+                return isMember() && isWearingCraftingGuild &&
                         (hasMaxedCrafting || hasFaladorHardDiary);
             case LUMBRIDGE_BASEMENT:
-                return Rs2Player.isMember() && Rs2Player.getQuestState(Quest.RECIPE_FOR_DISASTER__ANOTHER_COOKS_QUEST) == QuestState.FINISHED;
+                return isMember() && Rs2Player.getQuestState(Quest.RECIPE_FOR_DISASTER__ANOTHER_COOKS_QUEST) == QuestState.FINISHED;
             case COOKS_GUILD:
                 boolean hasVarrockHardDiary = Microbot.getVarbitValue(Varbits.DIARY_VARROCK_HARD) == 1;
                 boolean hasMaxedCooking = Rs2Player.getSkillRequirement(Skill.COOKING, 99, false);
@@ -123,46 +130,49 @@ public enum BankLocation {
                         (Rs2Equipment.isWearing("max cape") || Rs2Equipment.isWearing("max hood")) ||
                         (Rs2Equipment.isWearing("varrock armour 3") || Rs2Equipment.isWearing("varrock armour 4"));
 
-                if (hasLineOfSight && Rs2Player.isMember() && (hasMaxedCooking || hasVarrockHardDiary)) return true;
-                return Rs2Player.isMember() && isWearingCooksGuild &&
+                if (hasLineOfSight && isMember() && (hasMaxedCooking || hasVarrockHardDiary)) return true;
+                return isMember() && isWearingCooksGuild &&
                         (hasVarrockHardDiary || hasMaxedCooking);
             case WARRIORS_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() &&
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() &&
                         (Rs2Player.getSkillRequirement(Skill.ATTACK, 99, false) || Rs2Player.getSkillRequirement(Skill.STRENGTH, 99, false)) ||
                         (Rs2Player.getRealSkillLevel(Skill.ATTACK) + Rs2Player.getRealSkillLevel(Skill.STRENGTH) >= 130);
             case WOODCUTTING_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() && Rs2Player.getSkillRequirement(Skill.WOODCUTTING, 60, true);
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() && Rs2Player.getSkillRequirement(Skill.WOODCUTTING, 60, true);
             case FARMING_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() && Rs2Player.getSkillRequirement(Skill.FARMING, 45, true);
-            case MINING_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() && Rs2Player.getSkillRequirement(Skill.MINING, 60, true);
-            case FISHING_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() && Rs2Player.getSkillRequirement(Skill.FISHING, 68, true);
-            case HUNTERS_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() && Rs2Player.getSkillRequirement(Skill.HUNTER, 46, false);
-            case LEGENDS_GUILD:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember() && Rs2Player.getQuestState(Quest.LEGENDS_QUEST) == QuestState.FINISHED;
-            case MAGE_TRAINING_ARENA:
-                if (hasLineOfSight && Rs2Player.isMember()) return true;
-                return Rs2Player.isMember();
-            default:
-                return true;
-        }
-    }
-    public boolean hasException() {
-        switch (this) {
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() && Rs2Player.getSkillRequirement(Skill.FARMING, 45, true);
             case MINING_GUILD:
                 boolean inRegion = Microbot.getClient().getLocalPlayer().getWorldLocation().getRegionID() == 12183 || Microbot.getClient().getLocalPlayer().getWorldLocation().getRegionID() == 12184;
-                return inRegion;
+                if (hasLineOfSight && isMember()) return true;
+                return inRegion && isMember() && Rs2Player.getSkillRequirement(Skill.MINING, 60, true);
+            case FISHING_GUILD:
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() && Rs2Player.getSkillRequirement(Skill.FISHING, 68, true);
+            case HUNTERS_GUILD:
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() && Rs2Player.getSkillRequirement(Skill.HUNTER, 46, false);
+            case LEGENDS_GUILD:
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() && Rs2Player.getQuestState(Quest.LEGENDS_QUEST) == QuestState.FINISHED;
+            case MAGE_TRAINING_ARENA:
+                if (hasLineOfSight && isMember()) return true;
+                return isMember();
+            case PORT_PHASMATYS:
+                if (hasLineOfSight && isMember()) return true;
+                return isMember() && Rs2Player.getQuestState(Quest.GHOSTS_AHOY) == QuestState.FINISHED;
+            case CORSAIR_COVE:
+                // Requires The Corsair Curse
+                return Rs2Player.getQuestState(Quest.THE_CORSAIR_CURSE) == QuestState.FINISHED;
+            case SOPHANEM:
+                return Rs2Player.getQuestState(Quest.CONTACT) == QuestState.FINISHED;
+            case CLAN_HALL:
+                // Requires Clan Membership, varbit 933
+                return Microbot.getVarbitValue(933) > 1;
             default:
-                return false;
+                return true;
         }
     }
 }

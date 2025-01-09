@@ -7,6 +7,7 @@ import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.GameState;
+import net.runelite.api.WorldType;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
@@ -21,6 +22,7 @@ import net.runelite.client.plugins.microbot.breakhandler.BreakHandlerPlugin;
 import net.runelite.client.plugins.microbot.mining.shootingstar.enums.ShootingStarLocation;
 import net.runelite.client.plugins.microbot.mining.shootingstar.model.Star;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.security.Login;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -62,7 +64,7 @@ public class ShootingStarPlugin extends Plugin {
     @Inject
     ShootingStarScript shootingStarScript;
 
-    public static String version = "1.1.0";
+    public static String version = "1.1.1";
     private String httpEndpoint;
     
     @Getter
@@ -120,6 +122,8 @@ public class ShootingStarPlugin extends Plugin {
 
         ZonedDateTime now = ZonedDateTime.now(utcZoneId);
 
+        boolean inSeasonalWorld = Microbot.getClient().getWorldType().contains(WorldType.SEASONAL);
+
         // Format starData into Star Model
         for (Star star : starData) {
             // Filter out stars that ended longer than three mintues ago to avoid adding really old stars
@@ -140,6 +144,13 @@ public class ShootingStarPlugin extends Plugin {
             star.setWorldObject(findWorld(star.getWorld()));
 
             if (star.isGameModeWorld()) continue;
+
+            // Seasonal world filtering
+            if (inSeasonalWorld && !star.isInSeasonalWorld()) {
+                continue; // Skip non-seasonal worlds if the player is in a seasonal world
+            } else if (!inSeasonalWorld && star.isInSeasonalWorld()) {
+                continue; // Skip seasonal worlds if the player is not in a seasonal world
+            }
 
             addToList(star);
         }
@@ -241,8 +252,8 @@ public class ShootingStarPlugin extends Plugin {
     @Override
     protected void startUp() throws AWTException {
         displayAsMinutes = config.isDisplayAsMinutes();
-        hideMembersWorlds = config.isHideMembersWorlds();
-        hideF2PWorlds = config.isHideF2PWorlds();
+        hideMembersWorlds = !Login.activeProfile.isMember();
+        hideF2PWorlds = Login.activeProfile.isMember();
         useNearestHighTierStar = config.useNearestHighTierStar();
         useBreakAtBank = config.useBreakAtBank();
         hideWildernessLocations = config.isHideWildernessLocations();
@@ -282,18 +293,6 @@ public class ShootingStarPlugin extends Plugin {
         if (event.getKey().equals(ShootingStarConfig.displayAsMinutes)) {
             displayAsMinutes = config.isDisplayAsMinutes();
             updatePanelList(false);
-        }
-
-        if (event.getKey().equals(ShootingStarConfig.hideMembersWorlds)) {
-            hideMembersWorlds = config.isHideMembersWorlds();
-            filterPanelList(hideMembersWorlds);
-            updatePanelList(true);
-        }
-
-        if (event.getKey().equals(ShootingStarConfig.hideF2PWorlds)) {
-            hideF2PWorlds = config.isHideF2PWorlds();
-            filterPanelList(hideF2PWorlds);
-            updatePanelList(true);
         }
 
         if (event.getKey().equals(ShootingStarConfig.hideWildernessLocations)) {
