@@ -17,8 +17,7 @@ public class ExampleScript extends Script {
                 if (!super.run()) return;
                 long startTime = System.currentTimeMillis();
 
-                test = false;
-
+                //CODE HERE
 
                 long endTime = System.currentTimeMillis();
                 long totalTime = endTime - startTime;

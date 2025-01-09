@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class Rs2Equipment {
     public static ItemContainer equipment() {
@@ -41,25 +42,54 @@ public class Rs2Equipment {
         }
     }
 
-    public static void useRingAction(JewelleryLocationEnum jewelleryLocationEnum) {
+    public static boolean useCapeAction(int itemId, String action) {
+        if (!hasEquippedSlot(EquipmentInventorySlot.CAPE)) {
+            Microbot.status = "Cape is missing in the equipment slot";
+            return false;
+        }
+
+        Rs2Item item = get(itemId);
+
+        if (item== null) {
+            return false;
+        }
+
+        int identifier = -1;
+        for (int i = 0; i < item.getEquipmentActions().size(); i++) {
+            if (item.getEquipmentActions().get(i) != null && item.getEquipmentActions().get(i).toLowerCase().contains(action.toLowerCase())) {
+                identifier = i + 2;
+                break;
+            }
+        }
+
+        if (identifier < 0) {
+            Microbot.log("Failed to find action: " + action + " in your cape slot");
+            return false;
+        }
+
+        Microbot.doInvoke(new NewMenuEntry(-1, 25362448, MenuAction.CC_OP.getId(), identifier, -1, action),
+                new Rectangle(1, 1, Microbot.getClient().getCanvasWidth(), Microbot.getClient().getCanvasHeight()));
+        return true;
+    }
+
+    public static boolean useRingAction(JewelleryLocationEnum jewelleryLocationEnum) {
         if (!hasEquippedSlot(EquipmentInventorySlot.RING)) {
             Microbot.status = "Amulet is missing in the equipment slot";
-            return;
+            return false;
         }
         Microbot.doInvoke(new NewMenuEntry(-1, 25362456, MenuAction.CC_OP.getId(), jewelleryLocationEnum.getIdentifier(), -1, "Equip"),
                 new Rectangle(1, 1, Microbot.getClient().getCanvasWidth(), Microbot.getClient().getCanvasHeight()));
-
-        //Rs2Reflection.invokeMenu(-1, 25362456, MenuAction.CC_OP.getId(), jewelleryLocationEnum.getIdentifier(), -1, "Equip", "", -1, -1);
+        return true;
     }
 
-    public static void useAmuletAction(JewelleryLocationEnum jewelleryLocationEnum) {
+    public static boolean useAmuletAction(JewelleryLocationEnum jewelleryLocationEnum) {
         if (!hasEquippedSlot(EquipmentInventorySlot.AMULET) || !hasEquippedContains(jewelleryLocationEnum.getTooltip())) {
             Microbot.status = "Amulet is missing in the equipment slot";
-            return;
+            return false;
         }
         Microbot.doInvoke(new NewMenuEntry(-1, 25362449, MenuAction.CC_OP.getId(), jewelleryLocationEnum.getIdentifier(), -1, "Equip"),
                 new Rectangle(1, 1, Microbot.getClient().getCanvasWidth(), Microbot.getClient().getCanvasHeight()));
-        //Rs2Reflection.invokeMenu(-1, 25362449, MenuAction.CC_OP.getId(), jewelleryLocationEnum.getIdentifier(), -1, "Equip", "", -1, -1);
+        return true;
     }
 
 
@@ -85,6 +115,43 @@ public class Rs2Equipment {
 
     public static Rs2Item get(String name) {
         return get(name, false);
+    }
+
+    /**
+     * Checks if the equipment contains an item that matches the specified predicate.
+     *
+     * @param predicate The predicate to apply.
+     * @return True if the equipment contains an item that matches the predicate, false otherwise.
+     */
+    public static boolean contains(Predicate<Rs2Item> predicate) {
+        return items().stream().anyMatch(predicate);
+    }
+
+    /**
+     * Retrieves an equipped item that matches the specified predicate.
+     *
+     * @param predicate The predicate to apply.
+     * @return The matching `Rs2Item` if found, or null otherwise.
+     */
+    public static Rs2Item get(Predicate<Rs2Item> predicate) {
+        return items().stream().filter(predicate).findFirst().orElse(null);
+    }
+
+
+    /**
+     * Interacts with an equipped item matching the predicate.
+     *
+     * @param predicate The predicate to identify the item.
+     * @param action    The action to perform.
+     * @return True if the interaction was successful, false otherwise.
+     */
+    public static boolean interact(Predicate<Rs2Item> predicate, String action) {
+        Rs2Item item = get(predicate);
+        if (item != null) {
+            invokeMenu(item, action);
+            return true;
+        }
+        return false;
     }
 
 
@@ -229,6 +296,19 @@ public class Rs2Equipment {
         return interact(id, "remove");
     }
 
+    public static boolean unEquip(EquipmentInventorySlot slot) {
+        return interact(slot, "remove");
+    }
+
+    public static boolean interact(EquipmentInventorySlot slot, String action) {
+        Rs2Item item = get(slot);
+        if (item != null) {
+            invokeMenu(item, action);
+            return true;
+        }
+        return false;
+    }
+
     /**
      *
      * @param name
@@ -275,7 +355,11 @@ public class Rs2Equipment {
         return equipmentItems.stream().anyMatch(x -> x.getSlot() == EquipmentInventorySlot.SHIELD.getSlotIdx());
     }
 
-    private static void invokeMenu(Rs2Item rs2Item, String action) {
+    public static boolean isNaked() {
+        return equipmentItems.stream().allMatch(x -> x.id == -1);
+    }
+
+    public static void invokeMenu(Rs2Item rs2Item, String action) {
         if (rs2Item == null) return;
 
         Rs2Tab.switchToEquipmentTab();
@@ -286,16 +370,15 @@ public class Rs2Equipment {
         int identifier = action.equalsIgnoreCase("remove") ? 1 : 0;
         MenuAction menuAction = MenuAction.CC_OP;
         if (identifier == 0) {
-            if (!action.isEmpty()) {
-                List<String> actions = rs2Item.getEquipmentActions();
+            if (action.isEmpty()) return;
 
+            List<String> actions = rs2Item.getEquipmentActions();
 
-                for (int i = 0; i < actions.size(); i++) {
-                    System.out.println(actions.get(i));
-                    if (action.equalsIgnoreCase(actions.get(i))) {
-                        identifier = i + 2;
-                        break;
-                    }
+            for (int i = 0; i < actions.size(); i++) {
+                System.out.println(actions.get(i));
+                if (action.equalsIgnoreCase(actions.get(i))) {
+                    identifier = i + 2;
+                    break;
                 }
             }
         }
@@ -326,7 +409,7 @@ public class Rs2Equipment {
         }
 
 
-        Microbot.doInvoke(new NewMenuEntry(param0, param1, menuAction.getId(), identifier, -1, rs2Item.name), new Rectangle(0, 0, 1, 1));
+        Microbot.doInvoke(new NewMenuEntry(param0, param1, menuAction.getId(), identifier, -1, rs2Item.name), new Rectangle(1, 1, Microbot.getClient().getCanvasWidth(), Microbot.getClient().getCanvasHeight()));
         //Rs2Reflection.invokeMenu(param0, param1, menuAction.getId(), identifier, rs2Item.id, action, target, -1, -1);
     }
 }

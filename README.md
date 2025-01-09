@@ -3,7 +3,7 @@
 
 
 # Microbot
-Microbot is an opensource automated oldschool runescape client based on runelite. It uses a plugin system to enable scripting. Here is a youtube channel showing off some of the scripts
+Microbot is an opensource oldschool runescape client based on runelite. It uses a plugin system to enable scripting. Here is a youtube channel showing off some of the scripts
 
 ## Youtube
 
@@ -23,13 +23,26 @@ If you enjoy my open source work and would like to support me, consider buying m
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow)](https://www.paypal.com/paypalme/MicrobotBE?country.x=BE)
 
+
+![image](https://github.com/user-attachments/assets/c510631d-5ecf-4968-a916-2942f9b754f8)
+
+
+BTC Address: bc1q4c63nc5jt9wem87cy7llsk2ur5psjnqhltt2kf
+
+LTC Address: ltc1qgk0dkchfd8tf7jvtj5708vheq82k2wyqucrqs7
+
+ETC Address: 0xf8A6d6Fae32319A93341aE45F1ED87DA2Aa04132
+
+DOGE Address: DNHQDHKn7MKdMQRZyoSrJ68Lnd1D9bjbTn
+
+
 Thank you for your support! 😊
 
-# I Want To Bot
+# I Want To Play
 
 ## Non jagex account
 
-Here is a youtube video on how to setup the bot from scratch for **NON-JAGEX ACCOUNTS**
+Here is a youtube video on how to setup microbot from scratch for **NON-JAGEX ACCOUNTS**
 
 https://www.youtube.com/watch?v=EbtdZnxq5iw
 
@@ -123,7 +136,7 @@ public static double version = 1.0;
 All our scripts exist of Config. This is the settings for a specific script
 Overlay, this is a visual overlay for a specific script
 Plugin which handles the code for starting and stopping the script
-Script which handles all of the code the bot has to execute.
+Script which handles all of the code that microbot has to execute.
 
 Inside the startup of a plugin we can call the script code like this:
 

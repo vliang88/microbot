@@ -4,11 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldArea;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.grounditems.GroundItem;
 import net.runelite.client.plugins.grounditems.GroundItemsPlugin;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
-import net.runelite.client.plugins.microbot.util.math.Random;
+import net.runelite.client.plugins.microbot.util.math.Rs2Random;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
 import net.runelite.client.plugins.microbot.util.models.RS2Item;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
@@ -17,10 +18,8 @@ import net.runelite.client.plugins.microbot.util.tile.Rs2Tile;
 
 import java.awt.*;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -96,8 +95,11 @@ public class Rs2GroundItem {
             }
             LocalPoint localPoint1 = LocalPoint.fromWorld(Microbot.getClient(), groundItem.location);
             if (localPoint1 != null) {
-                Microbot.doInvoke(new NewMenuEntry(action, param0, param1, menuAction.getId(), identifier, -1, target),
-                        Perspective.getCanvasTilePoly(Microbot.getClient(), localPoint1).getBounds());
+                Polygon canvas = Perspective.getCanvasTilePoly(Microbot.getClient(), localPoint1);
+                if (canvas != null) {
+                    Microbot.doInvoke(new NewMenuEntry(action, param0, param1, menuAction.getId(), identifier, -1, target),
+                            canvas.getBounds());
+                }
             } else {
                 Microbot.doInvoke(new NewMenuEntry(action, param0, param1, menuAction.getId(), identifier, -1, target),
                         new Rectangle(1, 1, Microbot.getClient().getCanvasWidth(), Microbot.getClient().getCanvasHeight()));
@@ -261,7 +263,7 @@ public class Rs2GroundItem {
     public static boolean waitForGroundItemDespawn(Runnable actionWhileWaiting,GroundItem groundItem){
         sleepUntil(() ->  {
             actionWhileWaiting.run();
-            sleepUntil(() -> groundItem != GroundItemsPlugin.getCollectedGroundItems().get(groundItem.getLocation(), groundItem.getId()), Random.random(600, 2100));
+            sleepUntil(() -> groundItem != GroundItemsPlugin.getCollectedGroundItems().get(groundItem.getLocation(), groundItem.getId()), Rs2Random.between(600, 2100));
             return groundItem != GroundItemsPlugin.getCollectedGroundItems().get(groundItem.getLocation(), groundItem.getId());
         });
         return groundItem != GroundItemsPlugin.getCollectedGroundItems().get(groundItem.getLocation(), groundItem.getId());
@@ -540,5 +542,19 @@ public class Rs2GroundItem {
                 1,
                 1)
                 .hasLineOfSightTo(Microbot.getClient().getTopLevelWorldView(), Microbot.getClient().getLocalPlayer().getWorldLocation().toWorldArea());
+    }
+
+    /**
+     * Loot first item based on worldpoint & id
+     * @param worldPoint
+     * @param itemId
+     * @return
+     */
+    public static boolean loot(final WorldPoint worldPoint, final int itemId)
+    {
+        final Optional<RS2Item> item = Arrays.stream(Rs2GroundItem.getAllAt(worldPoint.getX(), worldPoint.getY()))
+                .filter(i -> i.getItem().getId() == itemId)
+                .findFirst();
+        return Rs2GroundItem.interact(item.orElse(null));
     }
 }
