@@ -32,7 +32,6 @@ public class MinnowsScript extends Script {
     public boolean run() {
         Rs2Antiban.resetAntibanSettings();
         Rs2Antiban.antibanSetupTemplates.applyFishingSetup();
-        Rs2AntibanSettings.profileSwitching = false;
         mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 if (!Microbot.isLoggedIn()) return;

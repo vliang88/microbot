@@ -29,7 +29,6 @@ import com.google.inject.Singleton;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -44,7 +43,6 @@ import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Varbits;
 import net.runelite.api.WidgetNode;
-import net.runelite.api.WorldType;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.widgets.WidgetModalMode;
 import net.runelite.client.Notifier;
@@ -176,12 +174,6 @@ public class FarmingTracker
 
 							int patchTickRate = previousPatchState.getTickRate();
 
-							// Farming ticks on leagues worlds are 1 minute instead of 5
-							if (isLeaguesWorld())
-							{
-								patchTickRate = patchTickRate / 5;
-							}
-
 							if (isObservedGrowthTick(previousPatchState, currentPatchState))
 							{
 								Integer storedOffsetPrecision = configManager.getRSProfileConfiguration(TimeTrackingConfig.CONFIG_GROUP, TimeTrackingConfig.FARM_TICK_OFFSET_PRECISION, int.class);
@@ -251,12 +243,6 @@ public class FarmingTracker
 		CropState previousCropState = previous.getCropState();
 		CropState currentCropState = current.getCropState();
 		Produce previousProduce = previous.getProduce();
-
-		// Farming ticks on leagues worlds are 1 minute instead of 5
-		if (isLeaguesWorld())
-		{
-			patchTickRate = patchTickRate / 5;
-		}
 
 		//Ignore weeds growing or being cleared.
 		if (previousProduce == Produce.WEEDS || current.getProduce() == Produce.WEEDS
@@ -345,12 +331,6 @@ public class FarmingTracker
 		int stage = state.getStage();
 		int stages = state.getStages();
 		int tickrate = state.getTickRate();
-
-		// Farming ticks on leagues worlds are 1 minute instead of 5
-		if (isLeaguesWorld())
-		{
-			tickrate = tickrate / 5;
-		}
 
 		if (autoweed && state.getProduce() == Produce.WEEDS)
 		{
@@ -533,12 +513,6 @@ public class FarmingTracker
 
 					int tickRate = prediction.getProduce().getTickrate();
 
-					// Farming ticks on leagues worlds are 1 minute instead of 5
-					if (isLeaguesWorld())
-					{
-						tickRate = tickRate / 5;
-					}
-
 					if (offsetPrecisionMins == null || offsetTimeMins == null || (offsetPrecisionMins < tickRate && offsetPrecisionMins < 40) || prediction.getProduce() == Produce.WEEDS
 						|| unixNow <= prediction.getDoneEstimate() || patchNotified || prediction.getCropState() == CropState.FILLING || prediction.getCropState() == CropState.EMPTY)
 					{
@@ -555,12 +529,6 @@ public class FarmingTracker
 			}
 		}
 		firstNotifyCheck = false;
-	}
-
-	private boolean isLeaguesWorld()
-	{
-		final EnumSet<WorldType> worldTypes = client.getWorldType();
-		return (worldTypes.contains(WorldType.SEASONAL) && !worldTypes.contains(WorldType.DEADMAN));
 	}
 
 	@VisibleForTesting

@@ -26,10 +26,13 @@ package net.runelite.cache.script.assembler;
 
 import java.util.ArrayList;
 import java.util.List;
-import lombok.Getter;
 
-@Getter
-class LookupSwitch
+public class LookupSwitch
 {
 	private final List<LookupCase> cases = new ArrayList<>();
+
+	public List<LookupCase> getCases()
+	{
+		return cases;
+	}
 }

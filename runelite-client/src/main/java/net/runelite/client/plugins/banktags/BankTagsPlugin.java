@@ -38,7 +38,6 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.inject.Named;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -69,6 +68,7 @@ import net.runelite.client.plugins.banktags.tabs.LayoutManager;
 import net.runelite.client.plugins.banktags.tabs.TabInterface;
 import static net.runelite.client.plugins.banktags.tabs.TabInterface.FILTERED_CHARS;
 import net.runelite.client.plugins.banktags.tabs.TabSprites;
+import net.runelite.client.plugins.banktags.tabs.TagTab;
 import net.runelite.client.util.Text;
 
 @PluginDescriptor(
@@ -79,21 +79,13 @@ import net.runelite.client.util.Text;
 @Slf4j
 public class BankTagsPlugin extends Plugin implements BankTagsService
 {
-	// banktags:item_<id>=tag,tag,tag,...
-	// banktags:icon_<tag>=id
-	// banktags:tagtabs=tab,tab,tab,...
-	// banktags:layout_<tag>=item,item,item,...
-	// banktags:hidden_<tag>=true
 	public static final String CONFIG_GROUP = "banktags";
-	public static final String TAG_ICON_PREFIX = "icon_";
-	public static final String TAG_TABS_CONFIG = "tagtabs";
-	public static final String TAG_LAYOUT_PREFIX = "layout_";
-	static final String ITEM_KEY_PREFIX = "item_";
-	static final String TAG_HIDDEN_PREFIX = "hidden_";
-
 	public static final String TAG_SEARCH = "tag:";
 	private static final String EDIT_TAGS_MENU_OPTION = "Edit-tags";
+	public static final String TAG_ICON_PREFIX = "icon_";
+	public static final String TAG_TABS_CONFIG = "tagtabs";
 	public static final String VAR_TAG_SUFFIX = "*";
+	public static final String TAG_LAYOUT_PREFIX = "layout_";
 
 	private static final int MAX_RESULT_COUNT = 250;
 
@@ -148,21 +140,8 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 	@Inject
 	private BankTagsConfig config;
 
-	@Inject
-	@Named("developerMode")
-	boolean developerMode;
-
 	@Getter
-	private String activeTag;
-
-	@Getter
-	private BankTag activeBankTag;
-
-	@Getter
-	private Layout activeLayout;
-
-	@Getter
-	private int options;
+	private BankTag activeTag;
 
 	@Override
 	public void configure(Binder binder)
@@ -180,7 +159,7 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 	public void resetConfiguration()
 	{
 		List<String> extraKeys = Lists.newArrayList(
-			CONFIG_GROUP + "." + ITEM_KEY_PREFIX,
+			CONFIG_GROUP + "." + TagManager.ITEM_KEY_PREFIX,
 			CONFIG_GROUP + "." + TAG_ICON_PREFIX,
 			CONFIG_GROUP + "." + TAG_TABS_CONFIG,
 			CONFIG_GROUP + "." + TAG_LAYOUT_PREFIX
@@ -344,7 +323,7 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 				final int itemId = intStack[intStackSize - 1];
 				String searchfilter = stringStack[stringStackSize - 1];
 
-				BankTag tag = activeBankTag;
+				BankTag tag = activeTag;
 				boolean tagSearch = true;
 				// Shared storage uses ~bankmain_filteritem too. Allow using tag searches in it but don't
 				// apply the tag search from the active tab.
@@ -366,7 +345,7 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 					tag = buildSearchFilterBankTag(searchfilter);
 				}
 
-				if (itemId == -1 && activeLayout != null)
+				if (itemId == -1 && tag.layout() != null)
 				{
 					// item -1 always passes on a laid out tab so items can be dragged to it
 					return;
@@ -385,12 +364,12 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 				}
 				break;
 			case "getSearchingTagTab":
-				intStack[intStackSize - 1] = activeBankTag != null ? 1 : 0;
+				intStack[intStackSize - 1] = activeTag != null ? 1 : 0;
 				break;
 			case "bankBuildTab":
 				// Use the per-tab view when we want to hide the separators to avoid having to reposition items &
 				// recomputing the scroll height.
-				if (activeBankTag != null && (tabInterface.isTagTabActive() || config.removeSeparators() || activeLayout != null))
+				if (activeTag != null && (tabInterface.isTagTabActive() || config.removeSeparators() || activeTag.layout() != null))
 				{
 					var stack = client.getIntStack();
 					var sz = client.getIntStackSize();
@@ -408,15 +387,10 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 		{
 			Widget container = client.getWidget(ComponentID.BANK_ITEM_CONTAINER);
 			Widget item = container.getChild(event.getActionParam0());
-			int itemId = item.getItemId();
-
-			Collection<String> tags = tagManager.getTags(itemId, false);
-			tags.addAll(tagManager.getTags(itemId, true));
-			int tagCount = (int) tags.stream()
-				.filter(tag -> !developerMode && !tagManager.isHidden(tag))
-				.count();
-
+			int itemID = item.getItemId();
 			String text = EDIT_TAGS_MENU_OPTION;
+			int tagCount = tagManager.getTags(itemID, false).size() + tagManager.getTags(itemID, true).size();
+
 			if (tagCount > 0)
 			{
 				text += " (" + tagCount + ")";
@@ -441,13 +415,9 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 		String name = itemComposition.getName();
 
 		// Get both tags and vartags and append * to end of vartags name
-		List<String> tags = tagManager.getTags(itemId, false).stream()
-			.filter(tag -> !developerMode && !tagManager.isHidden(tag))
-			.collect(Collectors.toList());
-
+		Collection<String> tags = tagManager.getTags(itemId, false);
 		tagManager.getTags(itemId, true).stream()
-			.filter(tag -> !developerMode && !tagManager.isHidden(tag))
-			.map(tag -> tag + "*")
+			.map(i -> i + "*")
 			.forEach(tags::add);
 
 		String initialValue = Text.toCSV(tags);
@@ -485,28 +455,32 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 		}
 	}
 
-	public void openTag(String tag, Layout layout)
+	public void open(TagTab tab)
 	{
-		openTag(tag, layout, OPTION_ALLOW_MODIFICATIONS);
-	}
-
-	public void openTag(String tag, Layout layout, int options)
-	{
-		if (tag == null)
+		if (tab == null)
 		{
-			this.activeTag = null;
-			this.activeBankTag = null;
-			this.activeLayout = null;
-			this.options = 0;
+			activeTag = null;
 			return;
 		}
 
-		this.activeTag = tag;
-		this.activeBankTag = buildSearchFilterBankTag(tag);
-		this.activeLayout = layout;
-		this.options = options;
+		// custom tags are combined with the tab
+		final BankTag custom = tagManager.findTag(tab.getTag());
 
-		tabInterface.openTag(tag, layout, options, true);
+		activeTag = new BankTag()
+		{
+			@Override
+			public boolean contains(int itemId)
+			{
+				return tagManager.findTag(itemId, tab.getTag())
+					|| (custom != null && custom.contains(itemId));
+			}
+
+			@Override
+			public Layout layout()
+			{
+				return tab.getLayout();
+			}
+		};
 	}
 
 	private BankTag buildSearchFilterBankTag(String tag)
@@ -517,26 +491,19 @@ public class BankTagsPlugin extends Plugin implements BankTagsService
 			|| (custom != null && custom.contains(itemId));
 	}
 
-	public void openBankTag(String name)
-	{
-		openBankTag(name, OPTION_ALLOW_MODIFICATIONS);
-	}
-
 	@Override
-	public void openBankTag(String name, int options)
-	{
-		Layout layout = (options & OPTION_NO_LAYOUT) != 0 ? null : layoutManager.loadLayout(name);
-		openTag(name, layout, options);
-	}
-
-	@Override
-	public void closeBankTag()
+	public void openTagTab(TagTab tagTab)
 	{
 		tabInterface.closeTag(false);
-		this.activeTag = null;
-		this.activeBankTag = null;
-		this.activeLayout = null;
-		this.options = 0;
+		open(tagTab);
+		bankSearch.layoutBank();
+	}
+
+	@Override
+	public void openBankTag(BankTag bankTag)
+	{
+		tabInterface.closeTag(false);
+		activeTag = bankTag;
 		bankSearch.layoutBank();
 	}
 }

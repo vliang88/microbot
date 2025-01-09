@@ -75,4 +75,5 @@ public abstract class Plugin implements Module
 	{
 		this.injector = injector;
 	}
+
 }

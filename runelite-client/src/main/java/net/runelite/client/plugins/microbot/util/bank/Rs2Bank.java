@@ -16,7 +16,6 @@ import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.grandexchange.Rs2GrandExchange;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Item;
-import net.runelite.client.plugins.microbot.util.inventory.RunePouchType;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.math.Rs2Random;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
@@ -189,117 +188,6 @@ public class Rs2Bank {
     public static boolean hasItem(String name, boolean exact) {
         return findBankItem(name, exact) != null;
     }
-    
-    /**
-     * Checks if the bank contains any of the specified item names.
-     *
-     * @param names A list of item names to check for.
-     * @return True if any of the items are found, false otherwise.
-     */
-    public static boolean hasItem(List<String> names) {
-        return hasItem(names, false, 1);
-    }
-
-    /**
-     * Checks if the bank contains any of the specified item names.
-     *
-     * @param names A list of item names to check for.
-     * @param exact If true, requires an exact name match.
-     * @return True if any of the items are found, false otherwise.
-     */
-    public static boolean hasItem(List<String> names, boolean exact) {
-        return hasItem(names, exact, 1);
-    }
-
-    /**
-     * Checks if the bank contains any of the specified item names.
-     *
-     * @param names A list of item names to check for.
-     * @param amount The minimum quantity required for each item.
-     * @return True if any of the items are found, false otherwise.
-     */
-    public static boolean hasItem(List<String> names, int amount) {
-        return hasItem(names, false, amount);
-    }
-    
-    /**
-     * Checks if the bank contains all items from a list of names with a minimum quantity.
-     *
-     * @param names  A list of item names to check for.
-     * @param exact  If true, requires an exact name match.
-     * @param amount The minimum quantity required for each item.
-     * @return True if all items from the list exist in the bank with the required quantity, false otherwise.
-     */
-    public static boolean hasAllItems(List<String> names, boolean exact, int amount) {
-        return names.stream().allMatch(name -> {
-            Rs2Item item = findBankItem(name, exact, amount);
-            return item != null;
-        });
-    }
-    
-    /**
-     * Checks if the bank contains any items from a list of names with a minimum quantity.
-     *
-     * @param names  A list of item names to check for.
-     * @param exact  If true, requires an exact name match.
-     * @param amount The minimum quantity required for the items.
-     * @return True if the bank contains at least one of the items with the specified quantity, false otherwise.
-     */
-    public static boolean hasItem(List<String> names, boolean exact, int amount) {
-        return findBankItem(names, exact, amount) != null;
-    }
-
-    /**
-     * Checks if the bank contains any item from the given array of IDs.
-     *
-     * @param ids The array of item IDs to check.
-     * @return True if the bank contains at least one of the specified items, false otherwise.
-     */
-    public static boolean hasItem(int[] ids) {
-        return Arrays.stream(ids)
-                .anyMatch(id -> findBankItem(id) != null);
-    }
-
-    /**
-     * Checks if the bank contains all items from the given array of IDs.
-     *
-     * @param ids The array of item IDs to check.
-     * @return True if the bank contains all the specified items, false otherwise.
-     */
-    public static boolean hasAllItems(int[] ids) {
-        return Arrays.stream(ids)
-                .allMatch(id -> findBankItem(id) != null);
-    }
-
-    /**
-     * Checks if the bank contains any item from the given array of IDs with the specified quantity.
-     *
-     * @param ids The array of item IDs to check.
-     * @param amount The minimum quantity required for each item.
-     * @return True if the bank contains at least one of the specified items with the required quantity, false otherwise.
-     */
-    public static boolean hasItem(int[] ids, int amount) {
-        return Arrays.stream(ids)
-                .anyMatch(id -> {
-                    Rs2Item item = findBankItem(id);
-                    return item != null && item.quantity >= amount;
-                });
-    }
-
-    /**
-     * Checks if the bank contains all items from the given array of IDs with the specified quantity.
-     *
-     * @param ids The array of item IDs to check.
-     * @param amount The minimum quantity required for each item.
-     * @return True if the bank contains all the specified items with the required quantity, false otherwise.
-     */
-    public static boolean hasAllItems(int[] ids, int amount) {
-        return Arrays.stream(ids)
-                .allMatch(id -> {
-                    Rs2Item item = findBankItem(id);
-                    return item != null && item.quantity >= amount;
-                });
-    }
 
     /**
      * check if the player has a bank item identified by exact name.
@@ -352,15 +240,6 @@ public class Rs2Bank {
         if (rs2Item == null) return false;
         log.info("Item: " + rs2Item.name + " Amount: " + rs2Item.quantity);
         return findBankItem(Objects.requireNonNull(rs2Item).name, true, amount) != null;
-    }
-
-    /**
-     * Query count of item inside of bank
-     */
-    public static int count(int id) {
-        Rs2Item bankItem = findBankItem(id);
-        if (bankItem == null) return 0;
-        return bankItem.quantity;
     }
 
     /**
@@ -677,7 +556,7 @@ public class Rs2Bank {
      */
     public static boolean depositAllExcept(boolean exact, String... names) {
         if (!exact)
-            return depositAll(x -> Arrays.stream(names).noneMatch(name -> x.name.toLowerCase().contains(name.toLowerCase())));
+            return depositAll(x -> Arrays.stream(names).noneMatch(name -> x.name.contains(name.toLowerCase())));
         else
             return depositAll(x -> Arrays.stream(names).noneMatch(name -> name.equalsIgnoreCase(x.name)));
     }
@@ -753,50 +632,6 @@ public class Rs2Bank {
     }
 
     /**
-     * withdraw one item identified by its id.
-     *
-     * @param id the item id
-     */
-    public static void withdrawAllButOne(int id) {
-        withdrawAllButOne(findBankItem(id));
-    }
-
-    /**
-     * withdraw one item identified by its name
-     *
-     * @param name the item name
-     */
-    public static void withdrawAllButOne(String name) {
-        withdrawAllButOne(name, false);
-    }
-
-
-    /**
-     * withdraw one item identified by its name.
-     * set exact to true if you want to identify by the exact name.
-     *
-     * @param name  the item name
-     * @param exact boolean
-     */
-    public static void withdrawAllButOne(String name, boolean exact) {
-        withdrawAllButOne(findBankItem(name, exact));
-    }
-
-    /**
-     * withdraw all but one of an item identified by its ItemWidget.
-     *
-     * @param rs2Item item to withdraw
-     */
-    private static void withdrawAllButOne(Rs2Item rs2Item) {
-        if (!isOpen()) return;
-        if (rs2Item == null) return;
-        if (Rs2Inventory.isFull()) return;
-        container = BANK_ITEM_CONTAINER;
-        
-        invokeMenu(8, rs2Item);
-    }
-
-    /**
      * withdraw x amount of items identified by its ItemWidget.
      *
      * @param rs2Item Item to handle
@@ -809,40 +644,6 @@ public class Rs2Bank {
         container = BANK_ITEM_CONTAINER;
 
         return handleAmount(rs2Item, amount);
-    }
-
-    /**
-     * Withdraws the deficit of an item from the bank to meet the required amount.
-     *
-     * @param id             The ID of the item to withdraw.
-     * @param requiredAmount The required total amount of the item.
-     * @return True if any items were withdrawn, false otherwise.
-     */
-    public static boolean withdrawDeficit(int id, int requiredAmount) {
-        int currentAmount = Rs2Inventory.itemQuantity(id);
-        int deficit = requiredAmount - currentAmount;
-
-        if (deficit <= 0) return true;
-        if (!hasBankItem(id, deficit)) return false;
-
-        return withdrawX(id, deficit);
-    }
-
-    /**
-     * Withdraws the deficit of an item from the bank to meet the required amount.
-     *
-     * @param name           The name of the item to withdraw.
-     * @param requiredAmount The required total amount of the item.
-     * @return True if any items were withdrawn, false otherwise.
-     */
-    public static boolean withdrawDeficit(String name, int requiredAmount) {
-        int currentAmount = Rs2Inventory.itemQuantity(name);
-        int deficit = requiredAmount - currentAmount;
-
-        if (deficit <= 0) return true;
-        if (!hasBankItem(name, deficit)) return false;
-
-        return withdrawX(name, deficit);
     }
 
     /**
@@ -887,8 +688,8 @@ public class Rs2Bank {
      * @param id     item id to search
      * @param amount amount to withdraw
      */
-    public static boolean withdrawX(int id, int amount) {
-        return withdrawXItem(findBankItem(id), amount);
+    public static void withdrawX(int id, int amount) {
+        withdrawXItem(findBankItem(id), amount);
     }
 
     /**
@@ -909,8 +710,8 @@ public class Rs2Bank {
      * @param name   item name to search
      * @param amount amount to withdraw
      */
-    public static boolean withdrawX(String name, int amount) {
-        return withdrawXItem(findBankItem(name, false), amount);
+    public static void withdrawX(String name, int amount) {
+        withdrawXItem(findBankItem(name, false), amount);
     }
 
     /**
@@ -1269,77 +1070,39 @@ public class Rs2Bank {
     }
 
     /**
-     * Finds an item in the bank based on a list of names.
-     *
-     * @param names  A list of potential item names.
-     * @param exact  If true, requires an exact name match.
-     * @param amount The minimum amount needed to find in the bank.
-     * @return The first matching item widget, or null if no matching item is found.
-     */
-    private static Rs2Item findBankItem(List<String> names, boolean exact, int amount) {
-        if (bankItems == null || bankItems.isEmpty()) return null;
-
-        return bankItems.stream()
-                .filter(item -> names.stream().anyMatch(name -> exact
-                        ? item.name.equalsIgnoreCase(name)
-                        : item.name.toLowerCase().contains(name.toLowerCase())))
-                .filter(item -> item.quantity >= amount)
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
      * Get the nearest bank
      *
      * @return BankLocation
      */
     public static BankLocation getNearestBank() {
-        return getNearestBank(Microbot.getClient().getLocalPlayer().getWorldLocation());
-    }
-    /**
-     * Get the nearest bank to world point
-     *
-     * @return BankLocation
-     */
-
-    public static BankLocation getNearestBank(WorldPoint worldPoint) {
-        Microbot.log("Calculating nearest bank path...");
         BankLocation nearest = null;
         double dist = Double.MAX_VALUE;
-        int y = worldPoint.getY();
-        boolean worldpointIsInCave = y > 6400;
-        WorldPoint location;
+        int y = Microbot.getClient().getLocalPlayer().getWorldLocation().getY();
+        boolean playerIsInCave = y > 9000;
+        WorldPoint playerLocation;
         double currDist;
         final int penalty = 10; // penalty if the bank is outside the cave and player is inside cave. This is to avoid being closer than banks in a cave
         for (BankLocation bankLocation : BankLocation.values()) {
-            if (!bankLocation.hasRequirements()) continue;
+            if (!bankLocation.hasRequirements() && !bankLocation.hasException()) continue;
 
-            boolean bankisInCave = bankLocation.getWorldPoint().getY() > 6400;
+            boolean bankisInCave = bankLocation.getWorldPoint().getY() > 9000;
 
-            if (!bankisInCave && worldpointIsInCave) {
-                location = new WorldPoint(worldPoint.getX(),  worldPoint.getY() - 6400, Microbot.getClient().getPlane());
-                currDist = location.distanceTo2D(bankLocation.getWorldPoint()) + penalty;
+            if (!bankisInCave && playerIsInCave) {
+                playerLocation = new WorldPoint(Microbot.getClient().getLocalPlayer().getWorldLocation().getX(),  Microbot.getClient().getLocalPlayer().getWorldLocation().getY() - 6400, Microbot.getClient().getPlane());
+                currDist = playerLocation.distanceTo2D(bankLocation.getWorldPoint()) + penalty;
             } else {
-                location = worldPoint;
-                currDist = location.distanceTo2D(bankLocation.getWorldPoint());
+                playerLocation = new WorldPoint(Microbot.getClient().getLocalPlayer().getWorldLocation().getX(),  Microbot.getClient().getLocalPlayer().getWorldLocation().getY(), Microbot.getClient().getPlane());
+                currDist = playerLocation.distanceTo2D(bankLocation.getWorldPoint());
             }
 
 
             if (nearest == null || currDist < dist) {
-                if (Rs2Walker.canReach(bankLocation.getWorldPoint())) {
-                    dist = currDist;
-                    nearest = bankLocation;
-                }
+                dist = currDist;
+                nearest = bankLocation;
             }
-        }
-        if (nearest != null) {
-            Microbot.log("Found nearest bank: " + nearest.name());
-        } else {
-            Microbot.log("Unable to find a bank");
         }
         return nearest;
     }
-
 
     /**
      * Walk to the closest bank
@@ -1567,61 +1330,6 @@ public class Rs2Bank {
         sleep(600);
         return hasWithdrawAsItem();
     }
-
-    /**
-     * Withdraws the player's rune pouch if it's available in the bank.
-     *
-     * @return true if the rune pouch was withdrawn, false otherwise.
-     */
-    public static boolean withdrawRunePouch() {
-        return Arrays.stream(RunePouchType.values())
-                .filter(pouch -> Rs2Bank.hasItem(pouch.getItemId()))
-                .findFirst()
-                .map(pouch -> {
-                    withdrawOne(pouch.getItemId());
-                    return true;
-                })
-                .orElse(false);
-    }
-
-    /**
-     * Deposits the player's rune pouch if it's in the inventory.
-     *
-     * @return true if the rune pouch was deposited, false otherwise.
-     */
-    public static boolean depositRunePouch() {
-        return Arrays.stream(RunePouchType.values())
-                .filter(pouch -> Rs2Inventory.hasItem(pouch.getItemId()))
-                .findFirst()
-                .map(pouch -> {
-                    depositOne(pouch.getItemId());
-                    return true;
-                })
-                .orElse(false);
-    }
-
-    /**
-     * Checks if the player has any type of rune pouch in the bank.
-     *
-     * @return true if a rune pouch is found in the bank, false otherwise.
-     */
-    public static boolean hasRunePouch() {
-        return Arrays.stream(RunePouchType.values())
-                .anyMatch(pouch -> Rs2Bank.hasItem(pouch.getItemId()));
-    }
-
-    /**
-     * Empty gem bag
-     *
-     * @return true if gem bag was emptied
-     */
-
-    public static boolean emptyGemBag() {
-        Rs2Item gemBag = Rs2Inventory.get(ItemID.GEM_BAG_12020,ItemID.OPEN_GEM_BAG);
-        if (gemBag == null) return false;
-        return Rs2Inventory.interact(gemBag, "Empty");
-    }
-
 
     /**
      * Withdraw items from the lootTrackerPlugin
@@ -2020,8 +1728,7 @@ public class Rs2Bank {
      */
     public static boolean preHover() {
         if (!Rs2AntibanSettings.naturalMouse) {
-            if(Rs2AntibanSettings.devDebug)
-                Microbot.log("Natural mouse is not enabled, can't hover");
+            Microbot.log("Natural mouse is not enabled, can't hover");
             return false;
         }
 

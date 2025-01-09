@@ -41,6 +41,7 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -52,8 +53,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Experience;
 import net.runelite.api.Player;
-import static net.runelite.api.SpriteID.TAB_COMBAT;
-import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
@@ -122,14 +121,13 @@ public class HiscorePanel extends PluginPanel
 
 	private static final HiscoreEndpoint[] ENDPOINTS = {
 		HiscoreEndpoint.NORMAL, HiscoreEndpoint.IRONMAN, HiscoreEndpoint.HARDCORE_IRONMAN, HiscoreEndpoint.ULTIMATE_IRONMAN,
-		HiscoreEndpoint.DEADMAN, HiscoreEndpoint.PURE, HiscoreEndpoint.LEVEL_3_SKILLER, HiscoreEndpoint.LEAGUE
+		HiscoreEndpoint.DEADMAN, HiscoreEndpoint.PURE, HiscoreEndpoint.LEVEL_3_SKILLER, HiscoreEndpoint.TOURNAMENT
 	};
 
 	private final HiscorePlugin plugin;
 	private final HiscoreConfig config;
 	private final NameAutocompleter nameAutocompleter;
 	private final HiscoreClient hiscoreClient;
-	private final SpriteManager spriteManager;
 
 	private final IconTextField searchBar;
 
@@ -146,14 +144,13 @@ public class HiscorePanel extends PluginPanel
 	private boolean loading = false;
 
 	@Inject
-	public HiscorePanel(Client client, HiscorePlugin plugin, HiscoreConfig config,
-		NameAutocompleter nameAutocompleter, HiscoreClient hiscoreClient, SpriteManager spriteManager)
+	public HiscorePanel(@Nullable Client client, HiscorePlugin plugin, HiscoreConfig config,
+		NameAutocompleter nameAutocompleter, HiscoreClient hiscoreClient)
 	{
 		this.plugin = plugin;
 		this.config = config;
 		this.nameAutocompleter = nameAutocompleter;
 		this.hiscoreClient = hiscoreClient;
-		this.spriteManager = spriteManager;
 
 		setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -181,6 +178,10 @@ public class HiscorePanel extends PluginPanel
 			public void mouseClicked(MouseEvent e)
 			{
 				if (e.getClickCount() != 2)
+				{
+					return;
+				}
+				if (client == null)
 				{
 					return;
 				}
@@ -332,14 +333,31 @@ public class HiscorePanel extends PluginPanel
 		label.setToolTipText(skill == null ? "Combat" : skill.getName());
 		label.setFont(FontManager.getRunescapeSmallFont());
 		label.setText(pad("--", skillType));
-		spriteManager.getSpriteAsync(skill == null ? TAB_COMBAT : skill.getSpriteId(), 0, (sprite) ->
-			SwingUtilities.invokeLater(() ->
-			{
-				// Icons are all 25x25 or smaller, so they're fit into a 25x25 canvas to give them a consistent size for
-				// better alignment. Further, they are then scaled down to 20x20 to not be overly large in the panel.
-				final BufferedImage scaledSprite = ImageUtil.resizeImage(ImageUtil.resizeCanvas(sprite, 25, 25), 20, 20);
-				label.setIcon(new ImageIcon(scaledSprite));
-			}));
+
+		String directory;
+		if (skill == null || skill == OVERALL)
+		{
+			directory = "/skill_icons/";
+		}
+		else if (skillType == HiscoreSkillType.BOSS)
+		{
+			directory = "bosses/";
+		}
+		else if (skillType == HiscoreSkillType.ACTIVITY)
+		{
+			directory = "activities/";
+		}
+		else
+		{
+			assert skillType == HiscoreSkillType.SKILL;
+			directory = "/skill_icons_small/";
+		}
+
+		String skillName = (skill == null ? "combat" : skill.name().toLowerCase());
+		String skillIcon = directory + skillName + ".png";
+		log.debug("Loading skill icon from {}", skillIcon);
+
+		label.setIcon(new ImageIcon(ImageUtil.loadImageResource(getClass(), skillIcon)));
 
 		boolean totalLabel = skill == OVERALL || skill == null; //overall or combat
 		label.setIconTextGap(totalLabel ? 10 : 4);

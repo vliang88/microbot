@@ -38,8 +38,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "animationidle",
-		name = "Idle animation notifications",
-		description = "Configures if idle animation notifications are enabled.",
+		name = "Idle Animation Notifications",
+		description = "Configures if idle animation notifications are enabled",
 		position = 1
 	)
 	default Notification animationIdle()
@@ -49,8 +49,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "interactionidle",
-		name = "Idle interaction notifications",
-		description = "Configures if idle interaction notifications are enabled e.g. combat, fishing.",
+		name = "Idle Interaction Notifications",
+		description = "Configures if idle interaction notifications are enabled e.g. combat, fishing",
 		position = 2
 	)
 	default Notification interactionIdle()
@@ -60,8 +60,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "movementidle",
-		name = "Idle movement notifications",
-		description = "Configures if idle movement notifications are enabled e.g. running, walking.",
+		name = "Idle Movement Notifications",
+		description = "Configures if idle movement notifications are enabled e.g. running, walking",
 		position = 3
 	)
 	default Notification movementIdle()
@@ -71,8 +71,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "logoutidle",
-		name = "Idle logout notifications",
-		description = "Configures if the idle logout notifications are enabled.",
+		name = "Idle Logout Notifications",
+		description = "Configures if the idle logout notifications are enabled",
 		position = 4
 	)
 	default Notification logoutIdle()
@@ -82,8 +82,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "timeout",
-		name = "Idle notification delay",
-		description = "The notification delay after the player is idle.",
+		name = "Idle Notification Delay",
+		description = "The notification delay after the player is idle",
 		position = 5
 	)
 	@Units(Units.MILLISECONDS)
@@ -94,8 +94,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "hitpointsNotification",
-		name = "Hitpoints notification",
-		description = "Configures if hitpoints notifications are enabled.",
+		name = "Hitpoints Notification",
+		description = "Configures if hitpoints notifications are enabled",
 		position = 6
 	)
 	default Notification getHitpointsNotification()
@@ -105,7 +105,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "hitpoints",
-		name = "Hitpoints threshold",
+		name = "Hitpoints Threshold",
 		description = "The amount of hitpoints to send a notification at.",
 		position = 7
 	)
@@ -117,7 +117,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "prayerNotification",
-		name = "Prayer notification",
+		name = "Prayer Notification",
 		description = "Configures if prayer notifications are enabled.",
 		position = 8
 	)
@@ -128,7 +128,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "prayer",
-		name = "Prayer threshold",
+		name = "Prayer Threshold",
 		description = "The amount of prayer points to send a notification at.",
 		position = 9
 	)
@@ -140,8 +140,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "lowEnergyNotification",
-		name = "Low energy notification",
-		description = "Configures if low energy notifications are enabled.",
+		name = "Low Energy Notification",
+		description = "Configures if low energy notifications are enabled",
 		position = 10
 	)
 	default Notification getLowEnergyNotification()
@@ -151,7 +151,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "lowEnergy",
-		name = "Low energy threshold",
+		name = "Low Energy Threshold",
 		description = "The amount of energy points remaining to send a notification at.",
 		position = 11
 	)
@@ -164,8 +164,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "highEnergyNotification",
-		name = "High energy notification",
-		description = "Configures if high energy notifications are enabled.",
+		name = "High Energy Notification",
+		description = "Configures if high energy notifications are enabled",
 		position = 12
 	)
 	default Notification getHighEnergyNotification()
@@ -175,7 +175,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "highEnergy",
-		name = "High energy threshold",
+		name = "High Energy Threshold",
 		description = "The amount of energy points reached to send a notification.",
 		position = 13
 	)
@@ -188,8 +188,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "oxygenNotification",
-		name = "Oxygen notification",
-		description = "Configures if oxygen notifications are enabled.",
+		name = "Oxygen Notification",
+		description = "Configures if oxygen notifications are enabled",
 		position = 14
 	)
 	default Notification getOxygenNotification()
@@ -199,7 +199,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "oxygen",
-		name = "Oxygen threshold",
+		name = "Oxygen Threshold",
 		position = 15,
 		description = "The amount of remaining oxygen to send a notification at."
 	)
@@ -212,8 +212,8 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "specNotification",
-		name = "Spec notification",
-		description = "Configures if special attack notifications are enabled.",
+		name = "Spec Notification",
+		description = "Configures if special attack notifications are enabled",
 		position = 16
 	)
 	default Notification getSpecNotification()
@@ -223,7 +223,7 @@ public interface IdleNotifierConfig extends Config
 
 	@ConfigItem(
 		keyName = "spec",
-		name = "Spec threshold",
+		name = "Spec Threshold",
 		position = 17,
 		description = "The amount of special attack energy reached to send a notification at."
 	)

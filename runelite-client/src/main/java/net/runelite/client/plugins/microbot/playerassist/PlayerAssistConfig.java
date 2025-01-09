@@ -2,11 +2,9 @@ package net.runelite.client.plugins.microbot.playerassist;
 
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.config.*;
-import net.runelite.client.plugins.microbot.inventorysetups.InventorySetup;
-import net.runelite.client.plugins.microbot.playerassist.enums.DefaultLooterStyle;
+import net.runelite.client.plugins.inventorysetups.InventorySetup;
 import net.runelite.client.plugins.microbot.playerassist.enums.PlayStyle;
 import net.runelite.client.plugins.microbot.playerassist.enums.PrayerStyle;
-import net.runelite.client.plugins.microbot.playerassist.enums.State;
 
 @ConfigGroup(net.runelite.client.plugins.microbot.playerassist.PlayerAssistConfig.GROUP)
 @ConfigInformation("1. Make sure to place the cannon first before starting the plugin. <br />" +
@@ -233,32 +231,10 @@ public interface PlayerAssistConfig extends Config {
     }
 
     @ConfigItem(
-            name = "Loot Style",
-            keyName = "lootStyle",
-            position = 1,
-            description = "Choose Looting Style",
-            section = lootSection
-    )
-    default DefaultLooterStyle looterStyle() {
-        return DefaultLooterStyle.MIXED;
-    }
-
-    @ConfigItem(
-            name = "List of Items",
-            keyName = "listOfItemsToLoot",
-            position = 2,
-            description = "List of items to loot",
-            section = lootSection
-    )
-    default String listOfItemsToLoot() {
-        return "bones,ashes";
-    }
-
-    @ConfigItem(
             keyName = "Min Price of items to loot",
             name = "Min. Price of items to loot",
             description = "Min. Price of items to loot",
-            position = 10,
+            position = 1,
             section = lootSection
     )
     default int minPriceOfItemsToLoot() {
@@ -269,7 +245,7 @@ public interface PlayerAssistConfig extends Config {
             keyName = "Max Price of items to loot",
             name = "Max. Price of items to loot",
             description = "Max. Price of items to loot default is set to 10M",
-            position = 11,
+            position = 1,
             section = lootSection
     )
     default int maxPriceOfItemsToLoot() {
@@ -281,7 +257,7 @@ public interface PlayerAssistConfig extends Config {
             keyName = "Loot arrows",
             name = "Auto loot arrows",
             description = "Enable/disable loot arrows",
-            position = 20,
+            position = 2,
             section = lootSection
     )
     default boolean toggleLootArrows() {
@@ -293,7 +269,7 @@ public interface PlayerAssistConfig extends Config {
             keyName = "Loot runes",
             name = "Loot runes",
             description = "Enable/disable loot runes",
-            position = 30,
+            position = 3,
             section = lootSection
     )
     default boolean toggleLootRunes() {
@@ -305,7 +281,7 @@ public interface PlayerAssistConfig extends Config {
             keyName = "Loot coins",
             name = "Loot coins",
             description = "Enable/disable loot coins",
-            position = 40,
+            position = 4,
             section = lootSection
     )
     default boolean toggleLootCoins() {
@@ -317,7 +293,7 @@ public interface PlayerAssistConfig extends Config {
             keyName = "Loot untradables",
             name = "Loot untradables",
             description = "Enable/disable loot untradables",
-            position = 50,
+            position = 5,
             section = lootSection
     )
     default boolean toggleLootUntradables() {
@@ -379,18 +355,6 @@ public interface PlayerAssistConfig extends Config {
             section = lootSection
     )
     default boolean toggleForceLoot() {
-        return false;
-    }
-
-    //toggle High Alch profitable items
-    @ConfigItem(
-            keyName = "highAlchProfitable",
-            name = "High Alch Profitable",
-            description = "High Alch Profitable items",
-            position = 101,
-            section = lootSection
-    )
-    default boolean toggleHighAlchProfitable() {
         return false;
     }
 
@@ -457,17 +421,6 @@ public interface PlayerAssistConfig extends Config {
                 "Always On: Quick prayer is always on";
     }
 
-    // Enable skilling
-    @ConfigItem(
-            keyName = "enableSkilling",
-            name = "Enable Skilling",
-            description = "Enable Skilling",
-            position = 0,
-            section = skillingSection
-    )
-    default boolean toggleEnableSkilling() {
-        return false;
-    }
     //Balance combat skills
     @ConfigItem(
             keyName = "balanceCombatSkills",
@@ -774,17 +727,6 @@ public interface PlayerAssistConfig extends Config {
         return true;
     }
 
-
-    //hidden config item for state
-    @ConfigItem(
-            keyName = "state",
-            name = "State",
-            description = "State",
-            hidden = true
-    )
-    default State state() {
-        return State.IDLE;
-    }
 
     // Hidden config item for inventory setup
     @ConfigItem(

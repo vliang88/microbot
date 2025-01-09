@@ -58,6 +58,7 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.http.api.item.ItemPrice;
+import net.runelite.http.api.item.ItemStats;
 
 @Singleton
 @Slf4j
@@ -350,38 +351,16 @@ public class ItemManager
 	 * @return item stats
 	 */
 	@Nullable
-	public ItemStats getItemStats(int itemId)
+	public ItemStats getItemStats(int itemId, boolean allowNote)
 	{
 		ItemComposition itemComposition = getItemComposition(itemId);
 
-		if (itemComposition.getName() == null || itemComposition.getNote() != -1)
+		if (itemComposition == null || itemComposition.getName() == null || (!allowNote && itemComposition.getNote() != -1))
 		{
 			return null;
 		}
 
 		return itemStats.get(canonicalize(itemId));
-	}
-
-	/**
-	 * Look up an item's stats
-	 *
-	 * @param itemId item id
-	 * @return item stats
-	 * @deprecated See {@link #getItemStats(int)}
-	 */
-	@Nullable
-	@Deprecated
-	public net.runelite.http.api.item.ItemStats getItemStats(int itemId, boolean allowNote)
-	{
-		ItemComposition itemComposition = getItemComposition(itemId);
-
-		if (itemComposition.getName() == null || (!allowNote && itemComposition.getNote() != -1))
-		{
-			return null;
-		}
-
-		var stats = itemStats.get(canonicalize(itemId));
-		return stats != null ? stats.toHttpApiFormat() : null;
 	}
 
 	/**

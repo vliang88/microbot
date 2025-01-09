@@ -35,8 +35,7 @@ public interface RegenMeterConfig extends Config
 	@ConfigItem(
 		keyName = "showHitpoints",
 		name = "Show hitpoints regen",
-		description = "Show a ring around the hitpoints orb."
-	)
+		description = "Show a ring around the hitpoints orb")
 	default boolean showHitpoints()
 	{
 		return true;
@@ -44,9 +43,8 @@ public interface RegenMeterConfig extends Config
 
 	@ConfigItem(
 		keyName = "showSpecial",
-		name = "Show spec. attack regen",
-		description = "Show a ring around the special attack orb."
-	)
+		name = "Show Spec. Attack regen",
+		description = "Show a ring around the Special Attack orb")
 	default boolean showSpecial()
 	{
 		return true;
@@ -55,8 +53,7 @@ public interface RegenMeterConfig extends Config
 	@ConfigItem(
 		keyName = "showWhenNoChange",
 		name = "Show at full hitpoints",
-		description = "Always show the hitpoints regen orb, even if there will be no stat change."
-	)
+		description = "Always show the hitpoints regen orb, even if there will be no stat change")
 	default boolean showWhenNoChange()
 	{
 		return false;
@@ -64,7 +61,7 @@ public interface RegenMeterConfig extends Config
 
 	@ConfigItem(
 		keyName = "notifyBeforeHpRegenDuration",
-		name = "Hitpoint notification",
+		name = "Hitpoint Notification",
 		description = "Notify approximately when your next hitpoint is about to regen. A value of 0 will disable notification."
 	)
 	@Units(Units.SECONDS)

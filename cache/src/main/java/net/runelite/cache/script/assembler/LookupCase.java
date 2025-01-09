@@ -24,13 +24,28 @@
  */
 package net.runelite.cache.script.assembler;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-class LookupCase
+public class LookupCase
 {
 	private int value;
 	private int offset;
+
+	public int getValue()
+	{
+		return value;
+	}
+
+	public void setValue(int value)
+	{
+		this.value = value;
+	}
+
+	public int getOffset()
+	{
+		return offset;
+	}
+
+	public void setOffset(int offset)
+	{
+		this.offset = offset;
+	}
 }

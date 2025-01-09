@@ -39,7 +39,7 @@ public interface FishingConfig extends Config
 		position = 0,
 		keyName = "onlyCurrent",
 		name = "Display only currently fished fish",
-		description = "Configures whether only current fished fish's fishing spots are displayed."
+		description = "Configures whether only current fished fish's fishing spots are displayed"
 	)
 	default boolean onlyCurrentSpot()
 	{
@@ -50,7 +50,7 @@ public interface FishingConfig extends Config
 		position = 1,
 		keyName = "showTiles",
 		name = "Display spot tiles",
-		description = "Configures whether tiles for fishing spots are highlighted."
+		description = "Configures whether tiles for fishing spots are highlighted"
 	)
 	default boolean showSpotTiles()
 	{
@@ -61,7 +61,7 @@ public interface FishingConfig extends Config
 		position = 2,
 		keyName = "showIcons",
 		name = "Display spot icons",
-		description = "Configures whether icons for fishing spots are displayed."
+		description = "Configures whether icons for fishing spots are displayed"
 	)
 	default boolean showSpotIcons()
 	{
@@ -72,7 +72,7 @@ public interface FishingConfig extends Config
 		position = 3,
 		keyName = "showNames",
 		name = "Display spot names",
-		description = "Configures whether names for fishing spots are displayed."
+		description = "Configures whether names for fishing spots are displayed"
 	)
 	default boolean showSpotNames()
 	{
@@ -82,8 +82,8 @@ public interface FishingConfig extends Config
 	@Alpha
 	@ConfigItem(
 		keyName = "overlayColor",
-		name = "Overlay color",
-		description = "Color of overlays.",
+		name = "Overlay Color",
+		description = "Color of overlays",
 		position = 4
 	)
 	default Color getOverlayColor()
@@ -94,8 +94,8 @@ public interface FishingConfig extends Config
 	@Alpha
 	@ConfigItem(
 		keyName = "minnowsOverlayColor",
-		name = "Minnows overlay",
-		description = "Color of overlays for minnows.",
+		name = "Minnows Overlay",
+		description = "Color of overlays for Minnows",
 		position = 5
 	)
 	default Color getMinnowsOverlayColor()
@@ -106,8 +106,8 @@ public interface FishingConfig extends Config
 	@Alpha
 	@ConfigItem(
 		keyName = "aerialOverlayColor",
-		name = "Aerial overlay",
-		description = "Color of overlays when 1-tick aerial fishing.",
+		name = "Aerial Overlay",
+		description = "Color of overlays when 1-tick aerial fishing",
 		position = 6
 	)
 	default Color getAerialOverlayColor()
@@ -118,8 +118,8 @@ public interface FishingConfig extends Config
 	@Alpha
 	@ConfigItem(
 		keyName = "harpoonfishOverlayColor",
-		name = "Harpoonfish overlay",
-		description = "Color of overlays for bubbling harpoonfish spots.",
+		name = "Harpoonfish Overlay",
+		description = "Color of overlays for bubbling Harpoonfish spots",
 		position = 6
 	)
 	default Color getHarpoonfishOverlayColor()
@@ -142,7 +142,7 @@ public interface FishingConfig extends Config
 	@ConfigItem(
 		position = 8,
 		keyName = "showFishingStats",
-		name = "Show fishing session stats",
+		name = "Show Fishing session stats",
 		description = "Display the fishing session stats."
 	)
 	default boolean showFishingStats()
@@ -153,7 +153,7 @@ public interface FishingConfig extends Config
 	@ConfigItem(
 		position = 9,
 		keyName = "showMinnowOverlay",
-		name = "Show minnow movement overlay",
+		name = "Show Minnow Movement overlay",
 		description = "Display the minnow progress pie overlay."
 	)
 	default boolean showMinnowOverlay()
@@ -175,7 +175,7 @@ public interface FishingConfig extends Config
 	@ConfigItem(
 		position = 11,
 		keyName = "trawlerTimer",
-		name = "Trawler timer in m:ss",
+		name = "Trawler timer in M:SS",
 		description = "Trawler timer will display a more accurate timer in M:SS format."
 	)
 	default boolean trawlerTimer()

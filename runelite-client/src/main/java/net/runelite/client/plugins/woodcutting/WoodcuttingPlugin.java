@@ -645,9 +645,9 @@ public class WoodcuttingPlugin extends Plugin
 
 			flowers.add(npc);
 		}
-		else if (id == NpcID.WOODCUTTING_LEPRECHAUN)
+		else if (id == NpcID.WOODCUTTING_LEPRECHAUN && config.forestryLeprechaunNotification())
 		{
-			notifier.notify(config.forestryLeprechaunNotification(), "A Leprechaun event spawned!");
+			notifier.notify("A Leprechaun event spawned!");
 		}
 		else if ((id == NpcID.FRIGHTENED_FOX || id == NpcID.FRIGHTENED_FOX_12560))
 		{

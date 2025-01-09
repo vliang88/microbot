@@ -25,6 +25,7 @@
  */
 package net.runelite.client.plugins.banktags.tabs;
 
+import com.google.common.util.concurrent.Runnables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.NonNull;
@@ -57,7 +57,6 @@ import net.runelite.api.ScriptID;
 import net.runelite.api.VarClientInt;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.MenuEntryAdded;
-import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.ItemQuantityMode;
@@ -65,7 +64,6 @@ import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
-import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -81,9 +79,6 @@ import static net.runelite.client.plugins.banktags.BankTagsPlugin.BANK_ITEM_STAR
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.BANK_ITEM_WIDTH;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.BANK_ITEM_X_PADDING;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.BANK_ITEM_Y_PADDING;
-import static net.runelite.client.plugins.banktags.BankTagsPlugin.CONFIG_GROUP;
-import static net.runelite.client.plugins.banktags.BankTagsPlugin.TAG_LAYOUT_PREFIX;
-import net.runelite.client.plugins.banktags.BankTagsService;
 import static net.runelite.client.plugins.banktags.tabs.TabInterface.DUPLICATE_ITEM;
 import static net.runelite.client.plugins.banktags.tabs.TabInterface.REMOVE_LAYOUT;
 import net.runelite.client.util.Text;
@@ -97,27 +92,29 @@ public class LayoutManager
 	private final BankTagsPlugin plugin;
 	private final ChatboxPanelManager chatboxPanelManager;
 	private final BankSearch bankSearch;
+	private final TabManager tabManager;
+	private final TabInterface tabInterface;
 	private final ChatMessageManager chatMessageManager;
 	private final PotionStorage potionStorage;
 	private final EventBus eventBus;
-	private final ConfigManager configManager;
 
 	private final List<PluginAutoLayout> autoLayouts = new ArrayList<>();
 
 	@Inject
 	LayoutManager(Client client, ItemManager itemManager, BankTagsPlugin plugin, ChatboxPanelManager chatboxPanelManager,
-		BankSearch bankSearch, ChatMessageManager chatMessageManager,
-		PotionStorage potionStorage, EventBus eventBus, ConfigManager configManager)
+		BankSearch bankSearch, TabManager tabManager, TabInterface tabInterface, ChatMessageManager chatMessageManager,
+		PotionStorage potionStorage, EventBus eventBus)
 	{
 		this.client = client;
 		this.itemManager = itemManager;
 		this.plugin = plugin;
 		this.chatboxPanelManager = chatboxPanelManager;
 		this.bankSearch = bankSearch;
+		this.tabManager = tabManager;
+		this.tabInterface = tabInterface;
 		this.chatMessageManager = chatMessageManager;
 		this.potionStorage = potionStorage;
 		this.eventBus = eventBus;
-		this.configManager = configManager;
 
 		registerAutoLayout(plugin, "Default", new DefaultLayout());
 	}
@@ -132,45 +129,6 @@ public class LayoutManager
 	{
 		eventBus.unregister(this);
 		eventBus.unregister(potionStorage);
-	}
-
-	@Nullable
-	public Layout loadLayout(String tag)
-	{
-		String layoutStr = configManager.getConfiguration(CONFIG_GROUP, TAG_LAYOUT_PREFIX + Text.standardize(tag));
-		if (layoutStr != null)
-		{
-			List<String> layoutList = Text.fromCSV(layoutStr);
-			int[] layout = new int[layoutList.size()];
-			for (int i = 0; i < layoutList.size(); ++i)
-			{
-				layout[i] = Integer.parseInt(layoutList.get(i));
-			}
-
-			return new Layout(tag, layout);
-		}
-		return null;
-	}
-
-	public void saveLayout(Layout layout)
-	{
-		String tag = layout.getTag();
-		int[] l = layout.getLayout();
-		StringBuilder sb = new StringBuilder(l.length * 5);
-		for (int i = 0; i < l.length; ++i)
-		{
-			if (i > 0)
-			{
-				sb.append(',');
-			}
-			sb.append(l[i]);
-		}
-		configManager.setConfiguration(CONFIG_GROUP, TAG_LAYOUT_PREFIX + Text.standardize(tag), sb.toString());
-	}
-
-	public void removeLayout(String tag)
-	{
-		configManager.unsetConfiguration(CONFIG_GROUP, TAG_LAYOUT_PREFIX + Text.standardize(tag));
 	}
 
 	private void layout(Layout l)
@@ -324,7 +282,7 @@ public class LayoutManager
 
 		if (modified)
 		{
-			saveLayout(l);
+			tabManager.save();
 		}
 	}
 
@@ -367,9 +325,9 @@ public class LayoutManager
 				c.setItemQuantity(Integer.MAX_VALUE);
 				c.setItemQuantityMode(ItemQuantityMode.NEVER);
 
-				if ((plugin.getOptions() & BankTagsService.OPTION_ALLOW_MODIFICATIONS) != 0)
+				// TabInterface rewrites these to RUNELITE types and adds handlers
+				if (tabInterface.isActive())
 				{
-					// TabInterface rewrites these to RUNELITE types and adds handlers
 					c.setAction(7 - 1, DUPLICATE_ITEM);
 					c.setAction(8 - 1, REMOVE_LAYOUT);
 				}
@@ -484,7 +442,7 @@ public class LayoutManager
 			l.insert(sidx, tidx);
 		}
 
-		saveLayout(l);
+		tabManager.save();
 		bankSearch.layoutBank();
 	}
 
@@ -586,7 +544,7 @@ public class LayoutManager
 		{
 			resetWidgets();
 
-			BankTag activeTag = plugin.getActiveBankTag();
+			BankTag activeTag = plugin.getActiveTag();
 			if (activeTag != null)
 			{
 				// Since the script vm isn't reentrant, we can't call into POTIONSTORE_DOSES/POTIONSTORE_WITHDRAW_DOSES
@@ -595,7 +553,7 @@ public class LayoutManager
 				// them by the time the inv transmit listener runs.
 				potionStorage.cachePotions = true;
 
-				Layout layout = plugin.getActiveLayout();
+				Layout layout = activeTag.layout();
 				if (layout != null)
 				{
 					layout(layout);
@@ -628,7 +586,8 @@ public class LayoutManager
 		}
 	}
 
-	void onMenuEntryAdded(MenuEntryAdded event, TabInterface tabInterface)
+	@Subscribe(priority = -1) // run after TabInterface sets up the Duplicate/Remove layout menus
+	private void onMenuEntryAdded(MenuEntryAdded event)
 	{
 		if (event.getActionParam1() == ComponentID.BANK_CONTENT_CONTAINER && event.getOption().equals(TabInterface.DISABLE_LAYOUT))
 		{
@@ -641,8 +600,8 @@ public class LayoutManager
 					.setType(MenuAction.RUNELITE_HIGH_PRIORITY)
 					.onClick(e ->
 					{
-						String tag = Text.standardize(e.getTarget());
-						if (!tag.equals(tabInterface.getActiveTag()))
+						TagTab tab = tabManager.find(Text.removeTags(e.getTarget()));
+						if (tab != tabInterface.getActiveTab())
 						{
 							chatMessageManager.queue(QueuedMessage.builder()
 								.type(ChatMessageType.CONSOLE)
@@ -651,26 +610,30 @@ public class LayoutManager
 							return;
 						}
 
-						Layout old = plugin.getActiveLayout();
-						Layout new_ = autoLayout.autoLayout.generateLayout(old);
-						plugin.openTag(tag, new_);
+						Layout old = tab.getLayout();
+						Layout new_ = autoLayout.autoLayout.generateLayout(tab);
+						tab.setLayout(new_);
+						bankSearch.layoutBank();
+						tab.setLayout(old);
+						tabManager.save();
 
 						chatboxPanelManager.openTextMenuInput("Tab laid out using the '" + autoLayout.getName() + "' layout.")
 							.option("1. Keep", () ->
-								saveLayout(new_))
-							.option("2. Undo", () ->
-								plugin.openTag(tag, old))
+							{
+								tab.setLayout(new_);
+								tabManager.save();
+							})
+							.option("2. Undo", Runnables.doNothing())
 							.onClose(bankSearch::layoutBank)
 							.build();
 					});
 			}
 		}
-	}
 
-	void onMenuOptionClicked(MenuOptionClicked event)
-	{
 		// Update widget index of the menu so withdraws work in laid out tabs.
-		if (event.getParam1() == ComponentID.BANK_ITEM_CONTAINER && plugin.getActiveLayout() != null)
+		BankTag activeTag = plugin.getActiveTag();
+		if (event.getActionParam1()  == ComponentID.BANK_ITEM_CONTAINER
+			&& activeTag != null && !tabInterface.isTagTabActive() && activeTag.layout() != null)
 		{
 			MenuEntry menu = event.getMenuEntry();
 			Widget w = menu.getWidget();
@@ -727,9 +690,9 @@ public class LayoutManager
 	private class DefaultLayout implements AutoLayout
 	{
 		@Override
-		public Layout generateLayout(Layout previous)
+		public Layout generateLayout(TagTab tab)
 		{
-			Layout l = new Layout(previous);
+			Layout l = new Layout(tab.getLayout());
 			List<Integer> removed = new ArrayList<>();
 
 			// Equipment

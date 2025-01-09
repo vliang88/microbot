@@ -11,12 +11,12 @@ import net.runelite.client.plugins.microbot.shortestpath.pathfinder.CollisionMap
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
+import net.runelite.client.ui.overlay.OverlayPriority;
 
 import java.awt.*;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PathTileOverlay extends Overlay {
@@ -31,16 +31,15 @@ public class PathTileOverlay extends Overlay {
         this.plugin = plugin;
         this.config = config;
         setPosition(OverlayPosition.DYNAMIC);
-        setPriority(Overlay.PRIORITY_LOW);
+        setPriority(OverlayPriority.LOW);
         setLayer(OverlayLayer.ABOVE_SCENE);
     }
 
     private void renderTransports(Graphics2D graphics) {
-        if (plugin == null) return;
-        if (plugin.getTransports() == null) return;
-        if (plugin.getPathfinderFuture() == null || !plugin.getPathfinderFuture().isDone()) return;
+        if (ShortestPathPlugin.getPathfinder() == null)
+            return;
         for (WorldPoint a : plugin.getTransports().keySet()) {
-            drawTile(graphics, a, config.colourTransports(), -1, true);
+            drawTile(graphics, a, config.colourTransports(), -1, true, 0);
 
             Point ca = tileCenter(a);
 
@@ -49,15 +48,15 @@ public class PathTileOverlay extends Overlay {
             }
 
             StringBuilder s = new StringBuilder();
-            for (Transport b : plugin.getTransports().getOrDefault(a, new HashSet<>())) {
-                for (WorldPoint destination : WorldPoint.toLocalInstance(client, b.getDestination())) {
-                    Point cb = tileCenter(destination);
+            for (Transport b : plugin.getTransports().getOrDefault(a, new ArrayList<>())) {
+                for (WorldPoint origin : WorldPoint.toLocalInstance(client, b.getOrigin())) {
+                    Point cb = tileCenter(origin);
                     if (cb != null) {
                         graphics.drawLine(ca.getX(), ca.getY(), cb.getX(), cb.getY());
                     }
-                    if (destination.getPlane() > a.getPlane()) {
+                    if (origin.getPlane() > a.getPlane()) {
                         s.append("+");
-                    } else if (destination.getPlane() < a.getPlane()) {
+                    } else if (origin.getPlane() < a.getPlane()) {
                         s.append("-");
                     } else {
                         s.append("=");
@@ -150,7 +149,7 @@ public class PathTileOverlay extends Overlay {
                     float step = i / (float) path.size();
                     Color newColor = generateGradient(step);
                     newColor = new Color(newColor.getRed(), newColor.getGreen(), newColor.getBlue(), 75);
-                    drawTile(graphics, path.get(i), newColor, counter++, showTiles);
+                    drawTile(graphics, path.get(i), newColor, counter++, showTiles, step);
                     drawTransportInfo(graphics, path.get(i), (i + 1 == path.size()) ? null : path.get(i + 1));
                 }
             }
@@ -179,7 +178,7 @@ public class PathTileOverlay extends Overlay {
         return new Point(cx, cy);
     }
 
-    private void drawTile(Graphics2D graphics, WorldPoint location, Color color, int counter, boolean draw) {
+    private void drawTile(Graphics2D graphics, WorldPoint location, Color color, int counter, boolean draw, float step) {
         for (WorldPoint point : WorldPoint.toLocalInstance(client, location)) {
             if (point.getPlane() != client.getPlane()) {
                 continue;
@@ -198,6 +197,14 @@ public class PathTileOverlay extends Overlay {
             if (draw) {
                 graphics.setColor(color);
                 graphics.fill(poly);
+                if (step > 0) {
+                    int centerX = (int) poly.getBounds().getCenterX();
+                    int centerY = (int) poly.getBounds().getCenterY();
+                    int percentage = (int) (step * 100);
+
+                    graphics.setColor(Color.WHITE);
+                    graphics.drawString(percentage + "%", centerX - 9, centerY + 5);
+                }
             }
 
             drawCounter(graphics, poly.getBounds().getCenterX(), poly.getBounds().getCenterY(), counter);
@@ -205,15 +212,8 @@ public class PathTileOverlay extends Overlay {
     }
 
     private void drawLine(Graphics2D graphics, WorldPoint startLoc, WorldPoint endLoc, Color color, int counter) {
-        Collection<WorldPoint> starts = WorldPoint.toLocalInstance(client, startLoc);
-        Collection<WorldPoint> ends = WorldPoint.toLocalInstance(client, endLoc);
-
-        if (starts.isEmpty() || ends.isEmpty()) {
-            return;
-        }
-
-        WorldPoint start = starts.iterator().next();
-        WorldPoint end = ends.iterator().next();
+        WorldPoint start = WorldPoint.toLocalInstance(client, startLoc).iterator().next();
+        WorldPoint end = WorldPoint.toLocalInstance(client, endLoc).iterator().next();
 
         final int z = client.getPlane();
         if (start.getPlane() != z) {
@@ -250,7 +250,6 @@ public class PathTileOverlay extends Overlay {
     }
 
     private void drawCounter(Graphics2D graphics, double x, double y, int counter) {
-        if (plugin.getPathfinder() == null) return;
         if (counter >= 0 && !TileCounter.DISABLED.equals(config.showTileCounter())) {
             int n = config.tileCounterStep() > 0 ? config.tileCounterStep() : 1;
             int s = plugin.getPathfinder().getPath().size();
@@ -272,19 +271,20 @@ public class PathTileOverlay extends Overlay {
     }
 
     private void drawTransportInfo(Graphics2D graphics, WorldPoint location, WorldPoint locationEnd) {
-        if (locationEnd == null || !config.showTransportInfo()) {
+        if (location == null || locationEnd == null)
+            return;
+        if (!config.showTransportInfo()) {
             return;
         }
         for (WorldPoint point : WorldPoint.toLocalInstance(client, location)) {
-            for (WorldPoint pointEnd : WorldPoint.toLocalInstance(client, locationEnd))
-            {
+            for (WorldPoint pointEnd : WorldPoint.toLocalInstance(client, locationEnd)) {
                 if (point.getPlane() != client.getPlane()) {
                     continue;
                 }
 
                 int vertical_offset = 0;
-                for (Transport transport : plugin.getTransports().getOrDefault(point, new HashSet<>())) {
-                    if (pointEnd == null || !pointEnd.equals(transport.getDestination())) {
+                for (Transport transport : plugin.getTransports().getOrDefault(point, new ArrayList<>())) {
+                    if (!pointEnd.equals(transport.getDestination())) {
                         continue;
                     }
 

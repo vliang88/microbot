@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import javax.inject.Singleton;
 import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
@@ -81,7 +82,7 @@ class NameAutocompleter implements KeyListener
 	private Pattern autocompleteNamePattern;
 
 	@Inject
-	private NameAutocompleter(Client client, HiscoreConfig hiscoreConfig)
+	private NameAutocompleter(@Nullable Client client, HiscoreConfig hiscoreConfig)
 	{
 		this.client = client;
 		this.hiscoreConfig = hiscoreConfig;
@@ -200,6 +201,11 @@ class NameAutocompleter implements KeyListener
 		// returns non-breaking spaces when a name has whitespace.
 		pattern = Pattern.compile(
 			"(?i)^" + nameStart.replaceAll("[ _-]", "[ _" + NBSP + "-]") + ".+?");
+
+		if (client == null)
+		{
+			return false;
+		}
 
 		// Search all previous successful queries
 		autocompleteName = searchHistory.stream()

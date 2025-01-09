@@ -110,11 +110,8 @@ class BarRenderer
 		if (skillIconEnabled)
 		{
 			final Image icon = iconSupplier.get();
-			if (icon != null)
-			{
-				final int xDraw = x + (width / 2) - (icon.getWidth(null) / 2);
-				graphics.drawImage(icon, xDraw, y + 4, null);
-			}
+			final int xDraw = x + (width / 2) - (icon.getWidth(null) / 2);
+			graphics.drawImage(icon, xDraw, y, null);
 		}
 
 		if (config.enableCounter())
@@ -134,6 +131,7 @@ class BarRenderer
 
 	private void renderRestore(Graphics2D graphics, int x, int y, int width, int height)
 	{
+		final Color color = healColorSupplier.get();
 		final int heal = healSupplier.get();
 
 		if (heal <= 0)
@@ -144,7 +142,6 @@ class BarRenderer
 		final int filledCurrentHeight = getBarHeight(maxValue, currentValue, height);
 		final int filledHealHeight = getBarHeight(maxValue, heal, height);
 		final int fillY, fillHeight;
-		final Color color = healColorSupplier.get();
 		graphics.setColor(color);
 
 		if (filledHealHeight + filledCurrentHeight > height)

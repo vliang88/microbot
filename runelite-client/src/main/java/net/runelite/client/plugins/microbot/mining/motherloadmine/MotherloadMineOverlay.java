@@ -1,7 +1,6 @@
 package net.runelite.client.plugins.microbot.mining.motherloadmine;
 
 import net.runelite.client.plugins.microbot.util.antiban.Rs2Antiban;
-import net.runelite.client.plugins.microbot.util.antiban.Rs2AntibanSettings;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
@@ -32,9 +31,7 @@ public class MotherloadMineOverlay extends OverlayPanel {
                     .build());
 
 
-            if(Rs2AntibanSettings.devDebug)
-                Rs2Antiban.renderAntibanOverlayComponents(panelComponent);
-
+            Rs2Antiban.renderAntibanOverlayComponents(panelComponent);
             addEmptyLine();
 
 
@@ -46,7 +43,7 @@ public class MotherloadMineOverlay extends OverlayPanel {
 
             panelComponent.getChildren().add(LineComponent.builder()
                     .left(status.toString())
-                    .right("Version: " + MotherloadMineScript.VERSION)
+                    .right("Version: " + MotherloadMineScript.version)
                     .build());
         } catch(Exception ex) {
             System.out.println(ex.getMessage());

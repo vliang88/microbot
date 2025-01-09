@@ -9,17 +9,15 @@ import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
 import net.runelite.client.plugins.microbot.shortestpath.ShortestPathPlugin;
-import net.runelite.client.plugins.microbot.util.Global;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
+import net.runelite.client.plugins.microbot.util.math.Random;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.tabs.Rs2Tab;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
 import java.awt.event.KeyEvent;
-import java.time.Duration;
-import java.time.LocalTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -34,7 +32,6 @@ public abstract class Script implements IScript {
     public ScheduledFuture<?> mainScheduledFuture;
     public static boolean hasLeveledUp = false;
     public static boolean useStaminaPotsIfNeeded = true;
-
     public boolean isRunning() {
         return mainScheduledFuture != null && !mainScheduledFuture.isDone();
     }
@@ -42,36 +39,25 @@ public abstract class Script implements IScript {
     @Getter
     protected static WorldPoint initialPlayerLocation;
 
-    public LocalTime startTime;
-
-    public Script() {
-
-    }
-
-    /**
-     * Get the total runtime of the script
-     * @return
-     */
-    public Duration getRunTime() {
-        if (startTime == null) return Duration.ofSeconds(0);
-
-        LocalTime currentTime = LocalTime.now();
-
-        Duration runtime = Duration.between(startTime, currentTime); // Calculate runtime
-
-        return runtime;
-    }
-
     public void sleep(int time) {
-        Global.sleep(time);
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     public void sleep(int start, int end) {
-        Global.sleep(start, end);
+        int randTime = Random.random(start, end);
+        try {
+            Thread.sleep(randTime);
+        } catch (InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     public boolean sleepUntil(BooleanSupplier awaitedCondition) {
-        return Global.sleepUntil(awaitedCondition, 5000);
+        return sleepUntil(awaitedCondition, 5000);
     }
 
     public boolean sleepUntil(BooleanSupplier awaitedCondition, int time) {
@@ -81,33 +67,6 @@ public abstract class Script implements IScript {
             done = awaitedCondition.getAsBoolean();
         } while (!done && System.currentTimeMillis() - startTime < time);
         return done;
-    }
-
-
-    /**
-     * Sleeps until a specified condition is met, running an action periodically, or until a timeout is reached.
-     *
-     * @param awaitedCondition The condition to wait for.
-     * @param action           The action to run periodically while waiting.
-     * @param timeoutMillis    The maximum time to wait in milliseconds.
-     * @param sleepMillis      The time to sleep between action executions in milliseconds.
-     * @return true if the condition was met within the timeout, false otherwise.
-     */
-    public boolean sleepUntil(BooleanSupplier awaitedCondition, Runnable action, long timeoutMillis, int sleepMillis) {
-        long startTime = System.nanoTime();
-        long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
-        try {
-            while (System.nanoTime() - startTime < timeoutNanos) {
-                action.run();
-                if (awaitedCondition.getAsBoolean()) {
-                    return true;
-                }
-                sleep(sleepMillis);
-            }
-        } catch (Exception e) {
-            Thread.currentThread().interrupt(); // Restore the interrupt status
-        }
-        return false; // Timeout reached without satisfying the condition
     }
 
 
@@ -138,9 +97,6 @@ public abstract class Script implements IScript {
 
 
     public void shutdown() {
-        if (scheduledFuture != null && !scheduledFuture.isDone()) {
-            scheduledFuture.cancel(true);
-        }
         if (mainScheduledFuture != null && !mainScheduledFuture.isDone()) {
             mainScheduledFuture.cancel(true);
             ShortestPathPlugin.exit();
@@ -148,18 +104,12 @@ public abstract class Script implements IScript {
                 Microbot.getClientThread().scheduledFuture.cancel(true);
             initialPlayerLocation = null;
             Microbot.pauseAllScripts = false;
-            Rs2Walker.disableTeleports = false;
             Microbot.getSpecialAttackConfigs().reset();
             Rs2Walker.setTarget(null);
         }
-        startTime = null;
     }
 
     public boolean run() {
-        if (startTime == null) {
-            startTime = LocalTime.now();
-        }
-
         hasLeveledUp = false;
         //Microbot.getSpecialAttackConfigs().useSpecWeapon();
 
@@ -167,9 +117,7 @@ public abstract class Script implements IScript {
             return false;
 
         if (Microbot.isLoggedIn()) {
-            boolean hasRunEnergy = Microbot.getClient().getEnergy() > Microbot.runEnergyThreshold;
-
-            if (Microbot.enableAutoRunOn && hasRunEnergy)
+            if (Microbot.enableAutoRunOn)
                 Rs2Player.toggleRunEnergy(true);
 
             if (Rs2Widget.getWidget(15269889) != null) { //levelup congratulations interface
@@ -188,6 +136,7 @@ public abstract class Script implements IScript {
                 }
             }
 
+            boolean hasRunEnergy = Microbot.getClient().getEnergy() > Microbot.runEnergyThreshold;
 
             if (!hasRunEnergy && Microbot.useStaminaPotsIfNeeded && Rs2Player.isMoving()) {
                 Rs2Inventory.useRestoreEnergyItem();

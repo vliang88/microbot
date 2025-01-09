@@ -28,6 +28,7 @@ import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.swing.SwingUtilities;
@@ -60,7 +61,8 @@ import net.runelite.client.util.Text;
 @PluginDescriptor(
 	name = "HiScore",
 	description = "Enable the HiScore panel and an optional Lookup option on players",
-	tags = {"panel", "players"}
+	tags = {"panel", "players"},
+	loadWhenOutdated = true
 )
 public class HiscorePlugin extends Plugin
 {
@@ -68,6 +70,7 @@ public class HiscorePlugin extends Plugin
 	private static final Pattern BOUNTY_PATTERN = Pattern.compile("You have been assigned a new target: <col=[0-9a-f]+>(.*)</col>");
 
 	@Inject
+	@Nullable
 	private Client client;
 
 	@Inject
@@ -107,7 +110,7 @@ public class HiscorePlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
-		if (config.playerOption())
+		if (config.playerOption() && client != null)
 		{
 			menuManager.get().addPlayerMenuItem(LOOKUP);
 		}
@@ -119,7 +122,10 @@ public class HiscorePlugin extends Plugin
 		hiscorePanel.shutdown();
 		clientToolbar.removeNavigation(navButton);
 
-		menuManager.get().removePlayerMenuItem(LOOKUP);
+		if (client != null)
+		{
+			menuManager.get().removePlayerMenuItem(LOOKUP);
+		}
 	}
 
 	@Subscribe
@@ -127,11 +133,14 @@ public class HiscorePlugin extends Plugin
 	{
 		if (event.getGroup().equals("hiscore"))
 		{
-			menuManager.get().removePlayerMenuItem(LOOKUP);
-
-			if (config.playerOption())
+			if (client != null)
 			{
-				menuManager.get().addPlayerMenuItem(LOOKUP);
+				menuManager.get().removePlayerMenuItem(LOOKUP);
+
+				if (config.playerOption())
+				{
+					menuManager.get().addPlayerMenuItem(LOOKUP);
+				}
 			}
 		}
 	}
@@ -194,7 +203,7 @@ public class HiscorePlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		if (event.getType() != ChatMessageType.GAMEMESSAGE || !config.bountylookup())
+		if (!event.getType().equals(ChatMessageType.GAMEMESSAGE) || !config.bountylookup())
 		{
 			return;
 		}
@@ -224,7 +233,11 @@ public class HiscorePlugin extends Plugin
 
 	HiscoreEndpoint getWorldEndpoint()
 	{
-		return HiscoreEndpoint.fromWorldTypes(client.getWorldType());
+		if (client != null)
+		{
+			return HiscoreEndpoint.fromWorldTypes(client.getWorldType());
+		}
+		return HiscoreEndpoint.NORMAL;
 	}
 
 	private HiscoreEndpoint findHiscoreEndpointFromLocalPlayer()
@@ -235,19 +248,22 @@ public class HiscorePlugin extends Plugin
 			return profile;
 		}
 
-		switch (client.getVarbitValue(Varbits.ACCOUNT_TYPE))
+		if (client != null)
 		{
-			case 1:
-				return HiscoreEndpoint.IRONMAN;
-			case 2:
-				return HiscoreEndpoint.ULTIMATE_IRONMAN;
-			case 3:
-				return HiscoreEndpoint.HARDCORE_IRONMAN;
+			switch (client.getVarbitValue(Varbits.ACCOUNT_TYPE))
+			{
+				case 1:
+					return HiscoreEndpoint.IRONMAN;
+				case 2:
+					return HiscoreEndpoint.ULTIMATE_IRONMAN;
+				case 3:
+					return HiscoreEndpoint.HARDCORE_IRONMAN;
+			}
 		}
 		return HiscoreEndpoint.NORMAL;
 	}
 
-	private static HiscoreEndpoint findHiscoreEndpointFromPlayerName(String name)
+	private HiscoreEndpoint findHiscoreEndpointFromPlayerName(String name)
 	{
 		if (name.contains(IconID.IRONMAN.toString()))
 		{

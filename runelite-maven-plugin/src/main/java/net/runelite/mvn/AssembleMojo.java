@@ -28,9 +28,6 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 import net.runelite.cache.IndexType;
 import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.definitions.savers.ScriptSaver;
@@ -43,10 +40,6 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.tomlj.Toml;
-import org.tomlj.TomlParseError;
-import org.tomlj.TomlParseResult;
-import org.tomlj.TomlTable;
 
 @Mojo(
 	name = "assemble",
@@ -60,9 +53,6 @@ public class AssembleMojo extends AbstractMojo
 	@Parameter(required = true)
 	private File outputDirectory;
 
-	@Parameter(required = true)
-	private File componentsFile;
-
 	private final Log log = getLog();
 
 	@Override
@@ -71,7 +61,7 @@ public class AssembleMojo extends AbstractMojo
 		RuneLiteInstructions instructions = new RuneLiteInstructions();
 		instructions.init();
 
-		Assembler assembler = new Assembler(instructions, buildComponentSymbols(componentsFile));
+		Assembler assembler = new Assembler(instructions);
 		ScriptSaver saver = new ScriptSaver();
 
 		int count = 0;
@@ -111,67 +101,5 @@ public class AssembleMojo extends AbstractMojo
 		}
 
 		log.info("Assembled " + count + " scripts");
-	}
-
-	private Map<String, Object> buildComponentSymbols(File file) throws MojoExecutionException
-	{
-		TomlParseResult result;
-		try
-		{
-			result = Toml.parse(file.toPath());
-		}
-		catch (IOException e)
-		{
-			throw new MojoExecutionException("unable to read component file " + file.getName(), e);
-		}
-
-		if (result.hasErrors())
-		{
-			for (TomlParseError err : result.errors())
-			{
-				log.error(err.toString());
-			}
-			throw new MojoExecutionException("unable to parse component file " + file.getName());
-		}
-
-		Map<String, Object> symbols = new HashMap<>();
-		for (var entry : result.entrySet())
-		{
-			var interfaceName = entry.getKey();
-			TomlTable tbl = (TomlTable) entry.getValue();
-
-			if (!tbl.contains("id"))
-			{
-				throw new MojoExecutionException("interface " + interfaceName + " has no id");
-			}
-
-			int interfaceId = (int) (long) tbl.getLong("id");
-			if (interfaceId < 0 || interfaceId > 0xffff)
-			{
-				throw new MojoExecutionException("interface id out of range for " + interfaceName);
-			}
-
-			for (var entry2 : tbl.entrySet())
-			{
-				var componentName = entry2.getKey();
-				if (componentName.equals("id"))
-				{
-					continue;
-				}
-
-				int id = (int) (long) entry2.getValue();
-				if (id < 0 || id > 0xffff)
-				{
-					throw new MojoExecutionException("component id out of range for " + componentName);
-				}
-
-				var fullName = interfaceName.toLowerCase(Locale.ENGLISH) + ":" + componentName.toLowerCase(Locale.ENGLISH);
-				int componentId = (interfaceId << 16) | id;
-
-				symbols.put(fullName, componentId);
-			}
-		}
-
-		return symbols;
 	}
 }

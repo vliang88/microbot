@@ -608,11 +608,6 @@ public class TimersAndBuffsPlugin extends Plugin
 		{
 			updateVarTimer(PRAYER_REGENERATION, event.getValue(), i -> i * 12);
 		}
-
-		if (event.getVarbitId() == Varbits.SCURRIUS_FOOD_PILE_COOLDOWN && config.showScurriusFoodPile())
-		{
-			updateVarTimer(SCURRIUS_FOOD_PILE, event.getValue(), i -> i * 100);
-		}
 	}
 
 	@Subscribe
@@ -835,11 +830,6 @@ public class TimersAndBuffsPlugin extends Plugin
 		{
 			removeVarTimer(PRAYER_REGENERATION);
 		}
-
-		if (!config.showScurriusFoodPile())
-		{
-			removeVarTimer(SCURRIUS_FOOD_PILE);
-		}
 	}
 
 	@Subscribe
@@ -873,55 +863,50 @@ public class TimersAndBuffsPlugin extends Plugin
 			createGameTimer(ABYSSAL_SIRE_STUN);
 		}
 
-		if (message.equals(CANNON_BASE_MESSAGE) || message.equals(CANNON_STAND_MESSAGE)
-			|| message.equals(CANNON_BARRELS_MESSAGE) || message.equals(CANNON_FURNACE_MESSAGE)
-			|| message.contains(CANNON_REPAIR_MESSAGE))
+		if (config.showCannon())
 		{
-			removeGameTimer(CANNON_REPAIR);
-
-			if (config.showCannon())
+			if (message.equals(CANNON_BASE_MESSAGE) || message.equals(CANNON_STAND_MESSAGE)
+					|| message.equals(CANNON_BARRELS_MESSAGE) || message.equals(CANNON_FURNACE_MESSAGE)
+					|| message.contains(CANNON_REPAIR_MESSAGE))
 			{
+				removeGameTimer(CANNON_REPAIR);
 				TimerTimer cannonTimer = createGameTimer(CANNON);
 				cannonTimer.setTooltip(cannonTimer.getTooltip() + " - World " + client.getWorld());
 			}
-		}
-		else if (message.equals(CANNON_BROKEN_MESSAGE))
-		{
-			removeGameTimer(CANNON);
-
-			if (config.showCannon())
+			else if (message.equals(CANNON_BROKEN_MESSAGE))
 			{
+				removeGameTimer(CANNON);
 				TimerTimer cannonTimer = createGameTimer(CANNON_REPAIR);
 				cannonTimer.setTooltip(cannonTimer.getTooltip() + " - World " + client.getWorld());
 			}
-		}
-		else if (message.equals(CANNON_PICKUP_MESSAGE) || message.equals(CANNON_DESTROYED_MESSAGE))
-		{
-			removeGameTimer(CANNON);
-			removeGameTimer(CANNON_REPAIR);
+			else if (message.equals(CANNON_PICKUP_MESSAGE) || message.equals(CANNON_DESTROYED_MESSAGE))
+			{
+				removeGameTimer(CANNON);
+				removeGameTimer(CANNON_REPAIR);
+			}
 		}
 
-		if (message.startsWith("You drink some of your") && message.contains("prayer enhance") && config.showPrayerEnhance())
+		if (config.showPrayerEnhance() && message.startsWith("You drink some of your") && message.contains("prayer enhance"))
 		{
 			createGameTimer(PRAYER_ENHANCE);
 		}
 
-		if (message.equals(PRAYER_ENHANCE_EXPIRED) && config.showPrayerEnhance())
+		if (config.showPrayerEnhance() && message.equals(PRAYER_ENHANCE_EXPIRED))
 		{
 			removeGameTimer(PRAYER_ENHANCE);
 		}
 
-		if (message.contains(STAFF_OF_THE_DEAD_SPEC_MESSAGE) && config.showStaffOfTheDead())
+		if (config.showStaffOfTheDead() && message.contains(STAFF_OF_THE_DEAD_SPEC_MESSAGE))
 		{
 			createGameTimer(STAFF_OF_THE_DEAD);
 		}
 
-		if (message.contains(STAFF_OF_THE_DEAD_SPEC_EXPIRED_MESSAGE) && config.showStaffOfTheDead())
+		if (config.showStaffOfTheDead() && message.contains(STAFF_OF_THE_DEAD_SPEC_EXPIRED_MESSAGE))
 		{
 			removeGameTimer(STAFF_OF_THE_DEAD);
 		}
 
-		if (message.equals(FROZEN_MESSAGE) && config.showFreezes())
+		if (config.showFreezes() && message.equals(FROZEN_MESSAGE))
 		{
 			freezeTimer = createGameTimer(ICEBARRAGE);
 			freezeTime = client.getTickCount();
@@ -959,10 +944,13 @@ public class TimersAndBuffsPlugin extends Plugin
 			}
 		}
 
-		if (message.endsWith(MARK_OF_DARKNESS_MESSAGE) && config.showArceuusCooldown())
+		if (config.showArceuusCooldown())
 		{
 			final int magicLevel = client.getRealSkillLevel(Skill.MAGIC);
-			createGameTimer(MARK_OF_DARKNESS_COOLDOWN, Duration.of(magicLevel - 10, RSTimeUnit.GAME_TICKS));
+			if (message.endsWith(MARK_OF_DARKNESS_MESSAGE))
+			{
+				createGameTimer(MARK_OF_DARKNESS_COOLDOWN, Duration.of(magicLevel - 10, RSTimeUnit.GAME_TICKS));
+			}
 		}
 
 		if (TZHAAR_PAUSED_MESSAGE.matcher(message).find())
@@ -1159,43 +1147,43 @@ public class TimersAndBuffsPlugin extends Plugin
 			return;
 		}
 
-		if (actor.getGraphic() == BIND.getGraphicId() && config.showFreezes())
+		if (config.showFreezes())
 		{
-			freezeTimer = createGameTimer(BIND);
-			freezeTime = client.getTickCount();
-		}
-
-		if (actor.getGraphic() == SNARE.getGraphicId() && config.showFreezes())
-		{
-			freezeTimer = createGameTimer(SNARE);
-			freezeTime = client.getTickCount();
-		}
-
-		if (actor.getGraphic() == ENTANGLE.getGraphicId() && config.showFreezes())
-		{
-			freezeTimer = createGameTimer(ENTANGLE);
-			freezeTime = client.getTickCount();
-		}
-
-		// downgrade freeze based on graphic, if at the same tick as the freeze message
-		if (freezeTime == client.getTickCount() && config.showFreezes())
-		{
-			if (actor.getGraphic() == ICERUSH.getGraphicId())
+			if (actor.getGraphic() == BIND.getGraphicId())
 			{
-				removeGameTimer(ICEBARRAGE);
-				freezeTimer = createGameTimer(ICERUSH);
+				createGameTimer(BIND);
 			}
 
-			if (actor.getGraphic() == ICEBURST.getGraphicId())
+			if (actor.getGraphic() == SNARE.getGraphicId())
 			{
-				removeGameTimer(ICEBARRAGE);
-				freezeTimer = createGameTimer(ICEBURST);
+				createGameTimer(SNARE);
 			}
 
-			if (actor.getGraphic() == ICEBLITZ.getGraphicId())
+			if (actor.getGraphic() == ENTANGLE.getGraphicId())
 			{
-				removeGameTimer(ICEBARRAGE);
-				freezeTimer = createGameTimer(ICEBLITZ);
+				createGameTimer(ENTANGLE);
+			}
+
+			// downgrade freeze based on graphic, if at the same tick as the freeze message
+			if (freezeTime == client.getTickCount())
+			{
+				if (actor.getGraphic() == ICERUSH.getGraphicId())
+				{
+					removeGameTimer(ICEBARRAGE);
+					freezeTimer = createGameTimer(ICERUSH);
+				}
+
+				if (actor.getGraphic() == ICEBURST.getGraphicId())
+				{
+					removeGameTimer(ICEBARRAGE);
+					freezeTimer = createGameTimer(ICEBURST);
+				}
+
+				if (actor.getGraphic() == ICEBLITZ.getGraphicId())
+				{
+					removeGameTimer(ICEBARRAGE);
+					freezeTimer = createGameTimer(ICEBLITZ);
+				}
 			}
 		}
 	}

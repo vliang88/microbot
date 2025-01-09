@@ -276,11 +276,9 @@ public class ShootingStarPanel extends PluginPanel {
         for (Star star : starList) {
             if (plugin.isHideMembersWorlds() && star.isMemberWorld()) {
                 hiddenStars.add(star);
-                continue;
             }
             if (plugin.isHideF2PWorlds() && star.isF2PWorld()) {
                 hiddenStars.add(star);
-                continue;
             }
             if (plugin.isHideWildernessLocations() && star.isInWilderness()) {
                 hiddenStars.add(star);

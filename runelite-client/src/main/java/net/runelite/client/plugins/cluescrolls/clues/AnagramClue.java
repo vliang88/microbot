@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.List;
-import java.util.function.Function;
 import javax.annotation.Nullable;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -36,7 +35,6 @@ import lombok.Getter;
 import net.runelite.api.NPC;
 import net.runelite.api.ObjectID;
 import net.runelite.api.TileObject;
-import net.runelite.api.Varbits;
 import net.runelite.api.coords.WorldPoint;
 import static net.runelite.client.plugins.cluescrolls.ClueScrollOverlay.TITLED_CONTENT_COLOR;
 import net.runelite.client.plugins.cluescrolls.ClueScrollPlugin;
@@ -50,6 +48,7 @@ import net.runelite.client.ui.overlay.components.PanelComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
 @Getter
+@Builder
 public class AnagramClue extends ClueScroll implements NpcClueScroll, ObjectClueScroll
 {
 	private static final String ANAGRAM_TEXT = "This anagram reveals who to speak to next: ";
@@ -776,59 +775,25 @@ public class AnagramClue extends ClueScroll implements NpcClueScroll, ObjectClue
 			.npc("Metla")
 			.location(new WorldPoint(1742, 2977, 0))
 			.area("Stonecutter Outpost")
-			.build(),
-		AnagramClue.builder()
-			.text("CIRR JAD")
-			.npc("Jardric")
-			.locationProvider(plugin ->
-			{
-				int q = plugin.getClient().getVarbitValue(Varbits.QUEST_DS2);
-				return q <= 60 ?
-					new WorldPoint(3719, 3810, 0) : // Museum camp
-					new WorldPoint(3661, 3849, 0); // West side of Fossil Island
-			})
-			.area("Fossil Island")
-			.question("What is 3 to the power of 0?")
-			.answer("1")
 			.build()
 	);
 
 	private final String text;
 	private final String npc;
 	@Getter(AccessLevel.PRIVATE)
-	private final Function<ClueScrollPlugin, WorldPoint> locationProvider;
+	private final WorldPoint location;
 	private final String area;
 	@Nullable
 	private final String question;
 	@Nullable
 	private final String answer;
-	private final int objectId;
-
-	@Builder
-	private AnagramClue(
-		String text,
-		String npc,
-		@Nullable WorldPoint location,
-		@Nullable Function<ClueScrollPlugin, WorldPoint> locationProvider,
-		String area,
-		@Nullable String question,
-		@Nullable String answer,
-		@Nullable Integer objectId
-	)
-	{
-		this.text = text;
-		this.npc = npc;
-		this.locationProvider = locationProvider != null ? locationProvider : (location != null ? (plugin) -> location : null);
-		this.area = area;
-		this.question = question;
-		this.answer = answer;
-		this.objectId = objectId != null ? objectId : -1;
-	}
+	@Builder.Default
+	private final int objectId = -1;
 
 	@Override
 	public WorldPoint getLocation(ClueScrollPlugin plugin)
 	{
-		return locationProvider == null ? null : locationProvider.apply(plugin);
+		return location;
 	}
 
 	@Override

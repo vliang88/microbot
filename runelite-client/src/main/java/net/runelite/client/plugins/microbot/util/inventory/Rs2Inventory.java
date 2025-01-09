@@ -1,6 +1,5 @@
 package net.runelite.client.plugins.microbot.util.inventory;
 
-import net.runelite.api.Point;
 import net.runelite.api.*;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.widgets.ComponentID;
@@ -13,10 +12,9 @@ import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.grandexchange.Rs2GrandExchange;
-import net.runelite.client.plugins.microbot.util.math.Rs2Random;
+import net.runelite.client.plugins.microbot.util.math.Random;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
 import net.runelite.client.plugins.microbot.util.misc.Rs2Potion;
-import net.runelite.client.plugins.microbot.util.misc.Rs2UiHelper;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.shop.Rs2Shop;
@@ -25,8 +23,10 @@ import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +34,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.runelite.client.plugins.microbot.Microbot.log;
-import static net.runelite.client.plugins.microbot.util.Global.*;
+import static net.runelite.client.plugins.microbot.util.Global.sleep;
+import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
 
 public class Rs2Inventory {
 
@@ -555,12 +556,73 @@ public class Rs2Inventory {
      *
      * @return True if all matching items were successfully dropped, false otherwise.
      */
-    public static boolean dropAll(Predicate<Rs2Item> predicate, InteractOrder dropOrder) {
+    public static boolean dropAll(Predicate<Rs2Item> predicate, DropOrder dropOrder) {
         List<Rs2Item> itemsToDrop = items().stream()
                 .filter(predicate)
                 .collect(Collectors.toList());
 
-       itemsToDrop = calculateInteractOrder(itemsToDrop, dropOrder);
+        switch (dropOrder) {
+            case STANDARD:
+                break;
+
+            case EFFICIENT_ROW:
+                itemsToDrop.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    int row1 = index1 / COLUMNS;
+                    int row2 = index2 / COLUMNS;
+                    if (row1 != row2) {
+                        return Integer.compare(row1, row2);
+                    } else {
+                        int col1 = index1 % COLUMNS;
+                        int col2 = index2 % COLUMNS;
+                        if (row1 % 2 == 0) {
+                            // For even rows, sort columns normally (left to right)
+                            return Integer.compare(col1, col2);
+                        } else {
+                            // For odd rows, sort columns in reverse (right to left)
+                            return Integer.compare(col2, col1);
+                        }
+                    }
+                });
+                break;
+
+            case COLUMN:
+                itemsToDrop.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    int col1 = index1 % COLUMNS;
+                    int col2 = index2 % COLUMNS;
+                    if (col1 != col2) {
+                        return Integer.compare(col1, col2);
+                    } else {
+                        return Integer.compare(index1 / COLUMNS, index2 / COLUMNS);
+                    }
+                });
+                break;
+
+            case EFFICIENT_COLUMN:
+                itemsToDrop.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    int col1 = index1 % COLUMNS;
+                    int col2 = index2 % COLUMNS;
+                    if (col1 != col2) {
+                        return Integer.compare(col1, col2);
+                    } else {
+                        int row1 = index1 / COLUMNS;
+                        int row2 = index2 / COLUMNS;
+                        if (col1 % 2 == 0) {
+                            // For even columns, sort rows normally (top to bottom)
+                            return Integer.compare(row1, row2);
+                        } else {
+                            // For odd columns, sort rows in reverse (bottom to top)
+                            return Integer.compare(row2, row1);
+                        }
+                    }
+                });
+                break;
+        }
 
         for (Rs2Item item : itemsToDrop) {
             if (item == null) continue;
@@ -590,7 +652,7 @@ public class Rs2Inventory {
      * @return True if all non-matching items were successfully dropped, false otherwise.
      */
     public static boolean dropAllExcept(String... names) {
-        return dropAllExcept(false, InteractOrder.STANDARD, names);
+        return dropAllExcept(false, DropOrder.STANDARD, names);
     }
 
     /**
@@ -608,7 +670,7 @@ public class Rs2Inventory {
      *
      * @return True if all non-matching items were successfully dropped, false otherwise.
      */
-    public static boolean dropAllExcept(boolean exact, InteractOrder dropOrder, String... names) {
+    public static boolean dropAllExcept(boolean exact, DropOrder dropOrder, String... names) {
         if (exact)
             return dropAll(x -> Arrays.stream(names).noneMatch(name -> name.equalsIgnoreCase(x.name)), dropOrder);
         else
@@ -867,13 +929,13 @@ public class Rs2Inventory {
      *
      * @return The quantity of the item if found, otherwise 0.
      */
-    public static int itemQuantity(int id) {
+    public static long ItemQuantity(int id) {
         Rs2Item rs2Item = get(id);
         if (rs2Item != null) {
             if (rs2Item.isStackable()) {
                 return rs2Item.quantity;
             } else {
-                return (int) items().stream().filter(x -> x.id == id).count();
+                return items().stream().filter(x -> x.id == id).count();
             }
         } else {
             return 0;
@@ -887,13 +949,13 @@ public class Rs2Inventory {
      *
      * @return The quantity of the item if found, otherwise 0.
      */
-    public static int itemQuantity(String itemName) {
+    public static long ItemQuantity(String itemName) {
         Rs2Item rs2Item = get(itemName);
         if (rs2Item != null) {
             if (rs2Item.isStackable()) {
                 return rs2Item.quantity;
             } else {
-                return (int) items().stream().filter(x -> x.id == rs2Item.getId()).count();
+                return items().stream().filter(x -> x.id == rs2Item.getId()).count();
             }
         } else {
             return 0;
@@ -1141,19 +1203,12 @@ public class Rs2Inventory {
      * @return A random item that matches the item IDs, or null if no matching items are found.
      */
     public static Rs2Item getRandom(int... itemIDs) {
-        List<Rs2Item> matchingItems = items().stream()
+        return items().stream()
                 .filter(x -> Arrays.stream(itemIDs)
                         .anyMatch(i -> i == x.id))
-                .collect(Collectors.toList());
-
-        if (matchingItems.isEmpty()) {
-            return null;
-        }
-
-        java.util.Random random = new java.util.Random();
-        return matchingItems.get(random.nextInt(matchingItems.size()));
+                .findAny()
+                .orElse(null);
     }
-
 
     /**
      * Gets a random item from the inventory that matches the specified item names.
@@ -1163,19 +1218,12 @@ public class Rs2Inventory {
      * @return A random item that matches the item names, or null if no matching items are found.
      */
     public static Rs2Item getRandom(String... itemNames) {
-        List<Rs2Item> matchingItems = items().stream()
+        return items().stream()
                 .filter(x -> Arrays.stream(itemNames)
                         .anyMatch(i -> i.equalsIgnoreCase(x.name)))
-                .collect(Collectors.toList());
-
-        if (matchingItems.isEmpty()) {
-            return null;
-        }
-
-        java.util.Random random = new java.util.Random();
-        return matchingItems.get(random.nextInt(matchingItems.size()));
+                .findAny()
+                .orElse(null);
     }
-
 
     /**
      * Gets a random item from the inventory that matches the specified item filter.
@@ -1185,18 +1233,11 @@ public class Rs2Inventory {
      * @return A random item that matches the filter criteria, or null if no matching items are found.
      */
     public static Rs2Item getRandom(Predicate<Rs2Item> itemFilter) {
-        List<Rs2Item> matchingItems = items().stream()
+        return items().stream()
                 .filter(itemFilter)
-                .collect(Collectors.toList());
-
-        if (matchingItems.isEmpty()) {
-            return null;
-        }
-
-        java.util.Random random = new java.util.Random();
-        return matchingItems.get(random.nextInt(matchingItems.size()));
+                .findAny()
+                .orElse(null);
     }
-
 
     /**
      * Gets the ID of the currently selected item in the inventory.
@@ -1227,7 +1268,7 @@ public class Rs2Inventory {
      */
     public static String getSelectedItemName() {
         if (Microbot.getClient().getSelectedWidget() == null) return null;
-        return Rs2UiHelper.stripColTags(Microbot.getClient().getSelectedWidget().getName());
+        return Microbot.getClient().getSelectedWidget().getName();
     }
 
     /**
@@ -2011,16 +2052,6 @@ public class Rs2Inventory {
     }
 
     /**
-     * Checks if the player has any type of rune pouch in the inventory.
-     *
-     * @return true if a rune pouch is found in the inventory, false otherwise.
-     */
-    public static boolean hasRunePouch() {
-        return Arrays.stream(RunePouchType.values())
-                .anyMatch(pouch -> Rs2Inventory.hasItem(pouch.getItemId()));
-    }
-
-    /**
      * Method executes menu actions
      *
      * @param rs2Item Current item to interact with
@@ -2087,14 +2118,10 @@ public class Rs2Inventory {
 
     private static Widget getInventory() {
         final int BANK_PIN_INVENTORY_ITEM_CONTAINER = 17563648;
-        final int SHOP_INVENTORY_ITEM_CONTAINER = 19726336;
         return Microbot.getClientThread().runOnClientThread(() -> {
             Widget inventoryWidget = Microbot.getClient().getWidget(ComponentID.INVENTORY_CONTAINER);
             Widget bankInventoryWidget = Microbot.getClient().getWidget(ComponentID.BANK_INVENTORY_ITEM_CONTAINER);
             Widget bankPinInventoryWidget = Microbot.getClient().getWidget(BANK_PIN_INVENTORY_ITEM_CONTAINER);
-            Widget shopInventoryWidget = Microbot.getClient().getWidget(SHOP_INVENTORY_ITEM_CONTAINER);
-            Widget grandExchangeWidget = Microbot.getClient().getWidget(ComponentID.GRAND_EXCHANGE_INVENTORY_INVENTORY_ITEM_CONTAINER);
-            Widget depositBoxWidget = Microbot.getClient().getWidget(ComponentID.DEPOSIT_BOX_INVENTORY_ITEM_CONTAINER);
             if (inventoryWidget != null && inventoryWidget.getDynamicChildren() != null && !inventoryWidget.isHidden()) {
                 return inventoryWidget;
             }
@@ -2103,15 +2130,6 @@ public class Rs2Inventory {
             }
             if (bankPinInventoryWidget != null && bankPinInventoryWidget.getDynamicChildren() != null && !bankPinInventoryWidget.isHidden()) {
                 return bankPinInventoryWidget;
-            }
-            if (shopInventoryWidget != null && shopInventoryWidget.getDynamicChildren() != null && !shopInventoryWidget.isHidden()) {
-                return shopInventoryWidget;
-            }
-            if (grandExchangeWidget != null && grandExchangeWidget.getDynamicChildren() != null && !grandExchangeWidget.isHidden()) {
-                return grandExchangeWidget;
-            }
-            if (depositBoxWidget != null && depositBoxWidget.getDynamicChildren() != null && !depositBoxWidget.isHidden()) {
-                return depositBoxWidget;
             }
             return null;
         });
@@ -2150,20 +2168,20 @@ public class Rs2Inventory {
     public static boolean waitForInventoryChanges(int time) {
         final int currentInventorySize = size();
         final int currentInventoryStackableSize = stackableSize();
-        sleepUntil(() -> currentInventorySize != size() || currentInventoryStackableSize != stackableSize(), time);
+        sleepUntil(() ->  {
+            sleepUntil(() -> currentInventorySize != size() || currentInventoryStackableSize != stackableSize(), time);
+            return currentInventorySize != size() || currentInventoryStackableSize != stackableSize();
+        });
         return currentInventorySize != size() || currentInventoryStackableSize != stackableSize();
     }
 
     public static boolean waitForInventoryChanges(Runnable actionWhileWaiting) {
-        return waitForInventoryChanges(actionWhileWaiting, Rs2Random.between(300, 600), Rs2Random.between(600, 2400));
-    }
-
-    public static boolean waitForInventoryChanges(Runnable actionWhileWaiting, int time, int timeout) {
         final int currentInventorySize = size();
         final int currentInventoryStackableSize = stackableSize();
         sleepUntil(() ->  {
             actionWhileWaiting.run();
-            return sleepUntilTrue(() -> currentInventorySize != size() || currentInventoryStackableSize != stackableSize(), time, timeout);
+            sleepUntil(() -> currentInventorySize != size() || currentInventoryStackableSize != stackableSize(), Random.random(600, 2100));
+            return currentInventorySize != size() || currentInventoryStackableSize != stackableSize();
         });
         return currentInventorySize != size() || currentInventoryStackableSize != stackableSize();
     }
@@ -2268,142 +2286,15 @@ public class Rs2Inventory {
     }
 
     public static boolean allPouchesFull() {
-        return Arrays.stream(Pouch.values()).filter(Pouch::hasPouchInInventory).allMatch(x -> (x.hasRequiredRunecraftingLevel() && x.getRemaining() <= 0) || !x.hasRequiredRunecraftingLevel());
+        return Arrays.stream(Pouch.values()).filter(Pouch::hasPouchInInventory).allMatch(x -> (x.hasRequiredRunecraftingLevel() && x.getRemaining() == 0) || !x.hasRequiredRunecraftingLevel());
     }
 
     public static boolean allPouchesEmpty() {
-        return Arrays.stream(Pouch.values()).filter(Pouch::hasPouchInInventory).allMatch(x -> (x.hasRequiredRunecraftingLevel() && x.getHoldAmount() <= 0) || !x.hasRequiredRunecraftingLevel());
+        return Arrays.stream(Pouch.values()).filter(Pouch::hasPouchInInventory).allMatch(x -> (x.hasRequiredRunecraftingLevel() && x.getHoldAmount() == 0) || !x.hasRequiredRunecraftingLevel());
     }
 
     public static boolean hasDegradedPouch() {
         return Arrays.stream(Pouch.values()).anyMatch(Pouch::isDegraded);
     }
 
-    /**
-     * clean herb in random order
-     * @return
-     */
-    public static void cleanHerbs(InteractOrder interactOrder) {
-        if (!Rs2Inventory.hasItem("grimy")) return;
-
-        List<Rs2Item> inventorySlots = calculateInteractOrder(items()
-                .stream()
-                .filter(x -> x.getName().toLowerCase().contains("grimy"))
-                .collect(Collectors.toList()), interactOrder);
-
-        // Shuffle the list to randomize the order
-
-        // Interact with each slot in the random order
-        for (Rs2Item rs2Item : inventorySlots) {
-            if (!Rs2Inventory.hasItem("grimy")) break;
-            if (rs2Item != null && !rs2Item.getName().toLowerCase().contains("grimy")) continue;
-            interact(rs2Item, "clean");
-        }
-    }
-
-    public static List<Rs2Item> calculateInteractOrder(List<Rs2Item> rs2Items, InteractOrder interactOrder) {
-        switch (interactOrder) {
-
-            case EFFICIENT_ROW:
-                rs2Items.sort((item1, item2) -> {
-                    int index1 = item1.getSlot();
-                    int index2 = item2.getSlot();
-                    int row1 = index1 / COLUMNS;
-                    int row2 = index2 / COLUMNS;
-                    if (row1 != row2) {
-                        return Integer.compare(row1, row2);
-                    } else {
-                        int col1 = index1 % COLUMNS;
-                        int col2 = index2 % COLUMNS;
-                        if (row1 % 2 == 0) {
-                            // For even rows, sort columns normally (left to right)
-                            return Integer.compare(col1, col2);
-                        } else {
-                            // For odd rows, sort columns in reverse (right to left)
-                            return Integer.compare(col2, col1);
-                        }
-                    }
-                });
-                return rs2Items;
-
-            case COLUMN:
-                rs2Items.sort((item1, item2) -> {
-                    int index1 = item1.getSlot();
-                    int index2 = item2.getSlot();
-                    int col1 = index1 % COLUMNS;
-                    int col2 = index2 % COLUMNS;
-                    if (col1 != col2) {
-                        return Integer.compare(col1, col2);
-                    } else {
-                        return Integer.compare(index1 / COLUMNS, index2 / COLUMNS);
-                    }
-                });
-                return rs2Items;
-
-            case EFFICIENT_COLUMN:
-                rs2Items.sort((item1, item2) -> {
-                    int index1 = item1.getSlot();
-                    int index2 = item2.getSlot();
-                    int col1 = index1 % COLUMNS;
-                    int col2 = index2 % COLUMNS;
-                    if (col1 != col2) {
-                        return Integer.compare(col1, col2);
-                    } else {
-                        int row1 = index1 / COLUMNS;
-                        int row2 = index2 / COLUMNS;
-                        if (col1 % 2 == 0) {
-                            // For even columns, sort rows normally (top to bottom)
-                            return Integer.compare(row1, row2);
-                        } else {
-                            // For odd columns, sort rows in reverse (bottom to top)
-                            return Integer.compare(row2, row1);
-                        }
-                    }
-                });
-                return rs2Items;
-                
-            case ZIGZAG:
-                int[] customOrder = {
-                        0, 4, 1, 5, 2, 6, 3, 7,
-                        11, 15, 10, 14, 9, 13, 8, 12,
-                        16, 20, 17, 21, 18, 22, 19, 23,
-                        27, 26, 25, 24
-                };
-                
-                Map<Integer, Integer> orderMap = new HashMap<>();
-                for (int i = 0; i < customOrder.length; i++) {
-                    orderMap.put(customOrder[i], i);
-                }
-
-                rs2Items.sort((item1, item2) -> {
-                    int index1 = item1.getSlot();
-                    int index2 = item2.getSlot();
-                    return Integer.compare(orderMap.getOrDefault(index1, Integer.MAX_VALUE),
-                            orderMap.getOrDefault(index2, Integer.MAX_VALUE));
-                });
-                return rs2Items;
-            case STANDARD:
-                return rs2Items;
-
-            default:
-                return rs2Items;
-        }
-    }
-
-    // hover over item in inventory
-    public static boolean hover(Rs2Item item) {
-        if (item == null) return false;
-        if (!Rs2AntibanSettings.naturalMouse) {
-            if(Rs2AntibanSettings.devDebug)
-                Microbot.log("Natural mouse is not enabled, can't hover");
-            return false;
-        }
-        Point point = Rs2UiHelper.getClickingPoint(itemBounds(item), true);
-        // if the point is 1,1 then the object is not on screen and we should return false
-        if (point.getX() == 1 && point.getY() == 1) {
-            return false;
-        }
-        Microbot.getNaturalMouse().moveTo(point.getX(), point.getY());
-        return true;
-    }
 }

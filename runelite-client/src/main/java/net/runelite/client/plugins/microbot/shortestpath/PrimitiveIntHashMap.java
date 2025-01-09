@@ -1,7 +1,6 @@
 package net.runelite.client.plugins.microbot.shortestpath;
 
 import java.util.Arrays;
-import java.util.Collection;
 
 // This class is not intended as a general purpose replacement for a hashmap; it lacks convenience features
 // found in regular maps and has no way to remove elements or get a list of keys/values.
@@ -65,12 +64,7 @@ public class PrimitiveIntHashMap<V> {
         return buckets[bucket][index].value;
     }
 
-    /* Associates the specified value with the specified key in this map.
-     * If the map previously contained a mapping for the key, the old value is
-     * replaced or appended if both the old and new value is a collection.
-     */
-    @SuppressWarnings("unchecked")
-    public <E> V put(int key, V value) {
+    public V put(int key, V value) {
         if (value == null) {
             throw new IllegalArgumentException("Cannot insert a null value");
         }
@@ -92,11 +86,7 @@ public class PrimitiveIntHashMap<V> {
                 return null;
             } else if (bucket[i].key == key) {
                 V previous = bucket[i].value;
-                if (previous instanceof Collection<?> && value instanceof Collection<?>) { // append
-                    ((Collection<E>) bucket[i].value).addAll((Collection<E>) value);
-                } else { // replace
-                    bucket[i].value = value;
-                }
+                bucket[i].value = value;
                 return previous;
             }
         }

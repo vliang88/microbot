@@ -29,7 +29,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LabelVisitor extends rs2asmBaseListener
+public class LabelVisitor extends rs2asmBaseListener
 {
 	private static final Logger logger = LoggerFactory.getLogger(LabelVisitor.class);
 

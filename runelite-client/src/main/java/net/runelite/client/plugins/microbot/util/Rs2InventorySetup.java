@@ -1,10 +1,10 @@
 package net.runelite.client.plugins.microbot.util;
 
 import net.runelite.api.Varbits;
+import net.runelite.client.plugins.inventorysetups.InventorySetup;
+import net.runelite.client.plugins.inventorysetups.InventorySetupsItem;
+import net.runelite.client.plugins.inventorysetups.MInventorySetupsPlugin;
 import net.runelite.client.plugins.microbot.Microbot;
-import net.runelite.client.plugins.microbot.inventorysetups.InventorySetup;
-import net.runelite.client.plugins.microbot.inventorysetups.InventorySetupsItem;
-import net.runelite.client.plugins.microbot.inventorysetups.MInventorySetupsPlugin;
 import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
@@ -19,23 +19,12 @@ import java.util.stream.Collectors;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
 
-/**
- * Utility class for managing inventory setups in the Microbot plugin.
- * Handles loading inventory and equipment setups, verifying matches, and ensuring
- * the correct items are equipped and in the inventory.
- */
 public class Rs2InventorySetup {
 
     InventorySetup inventorySetup;
 
     ScheduledFuture<?> _mainScheduler;
 
-    /**
-     * Constructor to initialize the Rs2InventorySetup with a specific setup name and scheduler.
-     *
-     * @param name          The name of the inventory setup to load.
-     * @param mainScheduler The scheduler to monitor for cancellation.
-     */
     public Rs2InventorySetup(String name, ScheduledFuture<?> mainScheduler) {
         inventorySetup = MInventorySetupsPlugin.getInventorySetups().stream().filter(Objects::nonNull).filter(x -> x.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
         _mainScheduler = mainScheduler;
@@ -45,36 +34,10 @@ public class Rs2InventorySetup {
         }
     }
 
-    /**
-     * Constructor to initialize the Rs2InventorySetup with a specific setup and scheduler.
-     * The setup can now directly be fetched from the new config selector.
-     *
-     * @param setup          The inventory setup to load.
-     * @param mainScheduler The scheduler to monitor for cancellation.
-     */
-    public Rs2InventorySetup(InventorySetup setup, ScheduledFuture<?> mainScheduler) {
-        inventorySetup = setup;
-        _mainScheduler = mainScheduler;
-        if (inventorySetup == null) {
-            Microbot.showMessage("Inventory load error!");
-            Microbot.pauseAllScripts = true;
-        }
-    }
-
-    /**
-     * Checks if the main scheduler has been cancelled.
-     *
-     * @return true if the scheduler is cancelled, false otherwise.
-     */
     private boolean isMainSchedulerCancelled() {
         return _mainScheduler != null && _mainScheduler.isCancelled();
     }
 
-    /**
-     * Loads the inventory setup from the bank.
-     *
-     * @return true if the inventory matches the setup after loading, false otherwise.
-     */
     public boolean loadInventory() {
         Rs2Bank.openBank();
         if (!Rs2Bank.isOpen()) {
@@ -108,14 +71,6 @@ public class Rs2InventorySetup {
         return doesInventoryMatch();
     }
 
-    /**
-     * Calculates the quantity of an item to withdraw based on the current inventory state.
-     *
-     * @param items              List of items to consider.
-     * @param inventorySetupsItem The inventory setup item.
-     * @param key                The item ID.
-     * @return The quantity to withdraw.
-     */
     private int calculateWithdrawQuantity(List<InventorySetupsItem> items, InventorySetupsItem inventorySetupsItem, int key) {
         int withdrawQuantity;
         if (items.size() == 1) {
@@ -140,12 +95,6 @@ public class Rs2InventorySetup {
         return withdrawQuantity;
     }
 
-    /**
-     * Withdraws an item from the bank.
-     *
-     * @param item     The item to withdraw.
-     * @param quantity The quantity to withdraw.
-     */
     private void withdrawItem(InventorySetupsItem item, int quantity) {
         if (item.isFuzzy()) {
             Rs2Bank.withdrawX(item.getName(), quantity);
@@ -159,11 +108,6 @@ public class Rs2InventorySetup {
         }
     }
 
-    /**
-     * Loads the equipment setup from the bank.
-     *
-     * @return true if the equipment matches the setup after loading, false otherwise.
-     */
     public boolean loadEquipment() {
         Rs2Bank.openBank();
         if (!Rs2Bank.isOpen()) {
@@ -222,12 +166,6 @@ public class Rs2InventorySetup {
         return doesEquipmentMatch();
     }
 
-    /**
-     * Wears the equipment items defined in the inventory setup.
-     * Iterates through the equipment setup and equips the items to the player.
-     *
-     * @return true if the equipment setup matches the current worn equipment, false otherwise.
-     */
     public boolean wearEquipment() {
         for (InventorySetupsItem inventorySetupsItem : inventorySetup.getEquipment()) {
             Rs2Inventory.wield(inventorySetupsItem.getId());
@@ -235,13 +173,6 @@ public class Rs2InventorySetup {
         return doesEquipmentMatch();
     }
 
-    /**
-     * Checks if the current inventory matches the setup defined in the inventory setup.
-     * It compares the quantity and stackability of items in the current inventory
-     * against the quantities required by the inventory setup.
-     *
-     * @return true if the inventory matches the setup, false otherwise.
-     */
     public boolean doesInventoryMatch() {
         Map<Integer, List<InventorySetupsItem>> groupedByItems = inventorySetup.getInventory().stream().collect(Collectors.groupingBy(InventorySetupsItem::getId));
         boolean found = true;
@@ -263,51 +194,24 @@ public class Rs2InventorySetup {
         return found;
     }
 
-    /**
-     * Checks if the current equipment setup matches the desired setup.
-     * Iterates through the equipment setup items and verifies if they are equipped properly.
-     *
-     * @return true if all equipment items match the setup, false otherwise.
-     */
     public boolean doesEquipmentMatch() {
         for (InventorySetupsItem inventorySetupsItem : inventorySetup.getEquipment()) {
             if (inventorySetupsItem.getId() == -1) continue;
-            if (inventorySetupsItem.isFuzzy()) {
-                if (!Rs2Equipment.isWearing(inventorySetupsItem.getName(), false)) {
-                    return false;
-                }
-            } else {
-                if (!Rs2Equipment.isWearing(inventorySetupsItem.getName(), true)) {
-                    return false;
-                }
+            if (!Rs2Equipment.isWearing(inventorySetupsItem.getName(), true)) {
+                return false;
             }
         }
         return true;
     }
-    /**
-     * Retrieves the list of inventory items from the setup, excluding any dummy items (ID == -1).
-     *
-     * @return A list of valid inventory items.
-     */
+
     public List<InventorySetupsItem> getInventoryItems() {
         return inventorySetup.getInventory().stream().filter(x -> x.getId() != -1).collect(Collectors.toList());
     }
 
-    /**
-     * Retrieves the list of equipment items from the setup, excluding any dummy items (ID == -1).
-     *
-     * @return A list of valid equipment items.
-     */
     public List<InventorySetupsItem> getEquipmentItems() {
         return inventorySetup.getEquipment().stream().filter(x -> x.getId() != -1).collect(Collectors.toList());
     }
 
-    /**
-     * Creates a list of item names that should not be deposited into the bank.
-     * Combines items from both the inventory setup and the equipment setup.
-     *
-     * @return A list of item names that should not be deposited.
-     */
     public List<String> itemsToNotDeposit() {
         List<InventorySetupsItem> inventorySetupItems = getInventoryItems();
         List<InventorySetupsItem> equipmentSetupItems = getEquipmentItems();
@@ -320,11 +224,6 @@ public class Rs2InventorySetup {
         return combined.stream().map(InventorySetupsItem::getName).collect(Collectors.toList());
     }
 
-    /**
-     * Checks if the current spellbook matches the one defined in the inventory setup.
-     *
-     * @return true if the current spellbook matches the setup, false otherwise.
-     */
     public boolean hasSpellBook() {
         return inventorySetup.getSpellBook() == Microbot.getVarbitValue(Varbits.SPELLBOOK);
     }

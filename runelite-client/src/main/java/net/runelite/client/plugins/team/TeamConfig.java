@@ -36,21 +36,21 @@ public interface TeamConfig extends Config
 
 	@ConfigSection(
 		name = "Team",
-		description = "Configuration for teams.",
+		description = "Configuration for teams",
 		position = 10
 	)
 	String teamSection = "teamSection";
 
 	@ConfigSection(
-		name = "Friends chat",
-		description = "Configuration for friends chat.",
+		name = "Friends Chat",
+		description = "Configuration for friends chat",
 		position = 20
 	)
 	String friendsChatSection = "friendsChatSection";
 
 	@ConfigSection(
-		name = "Clan chat",
-		description = "Configuration for clan chat.",
+		name = "Clan Chat",
+		description = "Configuration for clan chat",
 		position = 30
 	)
 	String clanChatSection = "clanChatSection";
@@ -69,7 +69,7 @@ public interface TeamConfig extends Config
 
 	@ConfigItem(
 		keyName = "minimumCapeCount",
-		name = "Minimum cape count",
+		name = "Minimum Cape Count",
 		description = "Configures the minimum number of team capes which must be present before being displayed.",
 		position = 1,
 		section = teamSection
@@ -81,7 +81,7 @@ public interface TeamConfig extends Config
 
 	@ConfigItem(
 		keyName = "friendsChatMemberCounter",
-		name = "Friends chat members counter",
+		name = "Friends Chat Members Counter",
 		description = "Show the amount of friends chat members near you.",
 		position = 0,
 		section = friendsChatSection
@@ -93,7 +93,7 @@ public interface TeamConfig extends Config
 
 	@ConfigItem(
 		keyName = "clanChatMemberCounter",
-		name = "Clan chat members counter",
+		name = "Clan Chat Members Counter",
 		description = "Show the amount of clan chat members near you.",
 		position = 0,
 		section = clanChatSection

@@ -37,6 +37,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.http.api.item.ItemPrice;
+import net.runelite.http.api.item.ItemStats;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -97,6 +98,7 @@ public class ItemClient
 	{
 		HttpUrl.Builder urlBuilder = staticBase.newBuilder()
 			.addPathSegment("item")
+			// TODO: Change this to stats.min.json later after release is undeployed
 			.addPathSegment("stats.ids.min.json");
 
 		HttpUrl url = urlBuilder.build();

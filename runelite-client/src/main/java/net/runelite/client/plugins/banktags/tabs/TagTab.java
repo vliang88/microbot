@@ -30,7 +30,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
- * A bank tag tab. This represents one of the tabs on the left hand side of the bank.
+ * A bank tag tab.
  *
  * @see TabManager#add(TagTab)
  * @see TabManager#remove(String)
@@ -42,10 +42,16 @@ public class TagTab
 {
 	private String tag;
 	private int iconItemId;
+	private Layout layout;
 
 	TagTab(int iconItemId, String tag)
 	{
 		this.iconItemId = iconItemId;
 		this.tag = tag;
+	}
+
+	public boolean hasLayout()
+	{
+		return layout != null;
 	}
 }

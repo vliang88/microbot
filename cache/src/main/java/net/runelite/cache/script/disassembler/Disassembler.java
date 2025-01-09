@@ -27,8 +27,6 @@ package net.runelite.cache.script.disassembler;
 import com.google.common.escape.Escaper;
 import com.google.common.escape.Escapers;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import net.runelite.cache.definitions.ScriptDefinition;
@@ -47,23 +45,10 @@ public class Disassembler
 		.build();
 
 	private final Instructions instructions = new Instructions();
-	private final Map<Object, String> symbols;
 
 	public Disassembler()
 	{
 		instructions.init();
-		this.symbols = Collections.emptyMap();
-	}
-
-	public Disassembler(Map<String, Object> symbols)
-	{
-		instructions.init();
-		this.symbols = new HashMap<>();
-
-		for (Entry<String, Object> e : symbols.entrySet())
-		{
-			this.symbols.put(e.getValue(), e.getKey());
-		}
 	}
 
 	private boolean isJump(int opcode)
@@ -177,10 +162,6 @@ public class Disassembler
 				if (isJump(opcode))
 				{
 					writer.append(" LABEL").append(i + iop + 1);
-				}
-				else if (symbols.containsKey(iop))
-				{
-					writer.append(" :").append(symbols.get(iop));
 				}
 				else
 				{

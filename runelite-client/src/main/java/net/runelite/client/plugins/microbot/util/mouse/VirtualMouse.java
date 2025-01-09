@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Point;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.antiban.Rs2AntibanSettings;
-import net.runelite.client.plugins.microbot.util.math.Rs2Random;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;
 import net.runelite.client.plugins.microbot.util.misc.Rs2UiHelper;
 
@@ -17,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
+import static net.runelite.client.plugins.microbot.util.math.Random.random;
 
 @Slf4j
 public class VirtualMouse extends Mouse {
@@ -56,64 +56,61 @@ public class VirtualMouse extends Mouse {
     public Mouse click(Point point, boolean rightClick) {
         if (point == null) return this;
 
-        Runnable clickAction = () -> {
-            if (Rs2AntibanSettings.naturalMouse && point.getX() > 1 && point.getY() > 1) {
-                Microbot.naturalMouse.moveTo(point.getX(), point.getY());
-            }
-            handleClick(point, rightClick);
-        };
+        if (Rs2AntibanSettings.naturalMouse && (point.getX() > 1 && point.getY() > 1))
+            Microbot.naturalMouse.moveTo(point.getX(), point.getY());
 
         if (Microbot.getClient().isClientThread()) {
-            scheduledExecutorService.schedule(clickAction, 0, TimeUnit.MILLISECONDS);
+            scheduledExecutorService.schedule(() -> {
+                handleClick(point, rightClick);
+            }, 0, TimeUnit.MILLISECONDS);
         } else {
-            clickAction.run();
+            handleClick(point, rightClick);
         }
 
         return this;
     }
-
 
     public Mouse click(Point point, boolean rightClick, NewMenuEntry entry) {
         if (point == null) return this;
-
-        Runnable clickAction = () -> {
-            Point newPoint = point;
-            if (Rs2AntibanSettings.naturalMouse && point.getX() > 1 && point.getY() > 1) {
-                Microbot.naturalMouse.moveTo(point.getX(), point.getY());
-
-                if (Rs2UiHelper.hasActor(entry)) {
-                    log.info("Actor found: " + entry.getActor().getName());
-                    Rectangle rectangle = Rs2UiHelper.getActorClickbox(entry.getActor());
-                    if (!Rs2UiHelper.isMouseWithinRectangle(rectangle)) {
-                        newPoint = Rs2UiHelper.getClickingPoint(rectangle, true);
-                        Microbot.naturalMouse.moveTo(newPoint.getX(), newPoint.getY());
-                    }
+        if (Rs2AntibanSettings.naturalMouse && (point.getX() > 1 && point.getY() > 1)) {
+            Microbot.naturalMouse.moveTo(point.getX(), point.getY());
+            if (Rs2UiHelper.hasActor(entry)) {
+                log.info("Actor found: " + entry.getActor().getName());
+                Rectangle rectangle = Rs2UiHelper.getActorClickbox(entry.getActor());
+                if (!Rs2UiHelper.isMouseWithinRectangle(rectangle)) {
+                    point = Rs2UiHelper.getClickingPoint(rectangle, true);
+                    Microbot.naturalMouse.moveTo(point.getX(), point.getY());
                 }
 
-                if (Rs2UiHelper.isGameObject(entry)) {
-                    log.info("Game Object found: " + entry.getGameObject().toString());
-                    Rectangle rectangle = Rs2UiHelper.getObjectClickbox(entry.getGameObject());
-                    if (!Rs2UiHelper.isMouseWithinRectangle(rectangle)) {
-                        newPoint = Rs2UiHelper.getClickingPoint(rectangle, true);
-                        Microbot.naturalMouse.moveTo(newPoint.getX(), newPoint.getY());
-
-                    }
+            }
+            if (Rs2UiHelper.isGameObject(entry)) {
+                log.info("Game Object found: " + entry.getGameObject().toString());
+                Rectangle rectangle = Rs2UiHelper.getObjectClickbox(entry.getGameObject());
+                if (!Rs2UiHelper.isMouseWithinRectangle(rectangle)) {
+                    point = Rs2UiHelper.getClickingPoint(rectangle, true);
+                    Microbot.naturalMouse.moveTo(point.getX(), point.getY());
                 }
             }
 
-            Microbot.targetMenu = entry;
-            handleClick(newPoint, rightClick);
-        };
 
+        }
+
+
+
+        // Target menu was set before mouse movement causing some unintended behavior
+        // This will set the target menu after the mouse movement is finished
+        Microbot.targetMenu = entry;
         if (Microbot.getClient().isClientThread()) {
-            scheduledExecutorService.schedule(clickAction, 0, TimeUnit.MILLISECONDS);
+            Point finalPoint = point;
+            scheduledExecutorService.schedule(() -> {
+                handleClick(finalPoint, rightClick);
+            }, 0, TimeUnit.MILLISECONDS);
         } else {
-            clickAction.run();
+            handleClick(point, rightClick);
         }
 
         return this;
     }
-
 
     public Mouse click(int x, int y) {
         return click(new Point(x, y), false);
@@ -184,21 +181,18 @@ public class VirtualMouse extends Mouse {
                     0, 10, 2);
             mouseScroll.setSource("Microbot");
             getCanvas().dispatchEvent(mouseScroll);
-        }, Rs2Random.between(40,100), TimeUnit.MILLISECONDS);
+        }, random(40, 100), TimeUnit.MILLISECONDS);
         return this;
     }
 
     public Mouse scrollUp(Point point) {
         long time = System.currentTimeMillis();
 
-        move(point);
+        MouseEvent mouseScroll = new MouseWheelEvent(getCanvas(), MouseEvent.MOUSE_WHEEL, time, 0, point.getX(), point.getY(), 0, false,
+                0, -10, -2);
 
-        scheduledExecutorService.schedule(() -> {
-            MouseEvent mouseScroll = new MouseWheelEvent(getCanvas(), MouseEvent.MOUSE_WHEEL, time, 0, point.getX(), point.getY(), 0, false,
-                    0, -10, -2);
-            mouseScroll.setSource("Microbot");
-            getCanvas().dispatchEvent(mouseScroll);
-        }, Rs2Random.between(40,100), TimeUnit.MILLISECONDS);
+        getCanvas().dispatchEvent(mouseScroll);
+
         return this;
     }
 

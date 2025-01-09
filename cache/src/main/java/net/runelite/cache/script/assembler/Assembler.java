@@ -28,8 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Map;
 import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.script.Instructions;
 import net.runelite.cache.script.assembler.rs2asmParser.ProgContext;
@@ -40,18 +38,10 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 public class Assembler
 {
 	private final Instructions instructions;
-	private final Map<String, Object> symbols;
 
 	public Assembler(Instructions instructions)
 	{
 		this.instructions = instructions;
-		this.symbols = Collections.emptyMap();
-	}
-
-	public Assembler(Instructions instructions, Map<String, Object> symbols)
-	{
-		this.instructions = instructions;
-		this.symbols = symbols;
 	}
 
 	public ScriptDefinition assemble(InputStream in) throws IOException
@@ -83,7 +73,7 @@ public class Assembler
 		LabelVisitor labelVisitor = new LabelVisitor();
 		walker.walk(labelVisitor, progContext);
 
-		ScriptWriter listener = new ScriptWriter(instructions, labelVisitor, symbols);
+		ScriptWriter listener = new ScriptWriter(instructions, labelVisitor);
 		walker.walk(listener, progContext);
 
 		return listener.buildScript();

@@ -211,7 +211,10 @@ public class ChatCommandsPluginTest
 	@Test
 	public void testCorporealBeastKill()
 	{
-		testKillCountChatMessage("corporeal beast", "Your Corporeal Beast kill count is: <col=ff0000>4</col>.", 4);
+		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", "Your Corporeal Beast kill count is: <col=ff0000>4</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessageEvent);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "corporeal beast", 4);
 	}
 
 	@Test
@@ -284,49 +287,55 @@ public class ChatCommandsPluginTest
 	@Test
 	public void testWintertodt()
 	{
-		testKillCountChatMessage("wintertodt", "Your subdued Wintertodt count is: <col=ff0000>4</col>.", 4);
+		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", "Your subdued Wintertodt count is: <col=ff0000>4</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessageEvent);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "wintertodt", 4);
 	}
 
 	@Test
 	public void testKreearra()
 	{
-		testKillCountChatMessage("kree'arra", "Your Kree'arra kill count is: <col=ff0000>4</col>.", 4);
+		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", "Your Kree'arra kill count is: <col=ff0000>4</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessageEvent);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "kree'arra", 4);
 	}
 
 	@Test
 	public void testBarrows()
 	{
-		testKillCountChatMessage("barrows chests", "Your Barrows chest count is: <col=ff0000>277</col>.", 277);
+		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", "Your Barrows chest count is: <col=ff0000>277</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessageEvent);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "barrows chests", 277);
 	}
 
 	@Test
 	public void testHerbiboar()
 	{
-		testKillCountChatMessage("herbiboar", "Your herbiboar harvest count is: <col=ff0000>4091</col>.", 4091);
+		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", "Your herbiboar harvest count is: <col=ff0000>4091</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessageEvent);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "herbiboar", 4091);
 	}
 
 	@Test
 	public void testGauntlet()
 	{
-		testKillCountChatMessage("gauntlet", "Your Gauntlet completion count is: <col=ff0000>123</col>.", 123);
+		ChatMessage gauntletMessage = new ChatMessage(null, GAMEMESSAGE, "", "Your Gauntlet completion count is: <col=ff0000>123</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(gauntletMessage);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "gauntlet", 123);
 	}
 
 	@Test
 	public void testCorruptedGauntlet()
 	{
-		testKillCountChatMessage("corrupted gauntlet", "Your Corrupted Gauntlet completion count is: <col=ff0000>4729</col>.", 4729);
-	}
+		ChatMessage corruptedGauntletMessage = new ChatMessage(null, GAMEMESSAGE, "", "Your Corrupted Gauntlet completion count is: <col=ff0000>4729</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(corruptedGauntletMessage);
 
-	@Test
-	public void testHunllefEcho()
-	{
-		testKillCountChatMessage("corrupted hunllef (echo)", "Your <col=a53fff>Corrupted Hunllef (Echo)</col> kill count is: <col=ff3045>31</col>", 31);
-	}
-
-	@Test
-	public void testKalphiteEcho()
-	{
-		testKillCountChatMessage("kalphite queen (echo)", "Your <col=6800bf>Kalphite Queen (Echo)</col> kill count is:<col=e00a19>1</col>", 1);
+		verify(configManager).setRSProfileConfiguration("killcount", "corrupted gauntlet", 4729);
 	}
 
 	@Test
@@ -676,24 +685,6 @@ public class ChatCommandsPluginTest
 	}
 
 	@Test
-	public void testKillCountLookup() throws IOException
-	{
-		when(chatCommandsConfig.killcount()).thenReturn(true);
-
-		when(chatClient.getKc(PLAYER_NAME, "Kalphite Queen (Echo)")).thenReturn(1);
-
-		MessageNode messageNode = mock(MessageNode.class);
-
-		ChatMessage chatMessage = new ChatMessage();
-		chatMessage.setType(ChatMessageType.PUBLICCHAT);
-		chatMessage.setName(PLAYER_NAME);
-		chatMessage.setMessageNode(messageNode);
-		chatCommandsPlugin.killCountLookup(chatMessage, "!kc kq (echo)");
-
-		verify(messageNode).setRuneLiteFormatMessage("<colHIGHLIGHT>Kalphite Queen (Echo)<colNORMAL> kill count: <colHIGHLIGHT>1");
-	}
-
-	@Test
 	public void testHsFloorNoPb()
 	{
 		ChatMessage chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "Floor 1 time: <col=ff0000>1:19</col>. Personal best: 0:28", null, 0);
@@ -794,13 +785,19 @@ public class ChatCommandsPluginTest
 	@Test
 	public void testHsFloorKc()
 	{
-		testKillCountChatMessage("hallowed sepulchre floor 5", "You have completed Floor 5 of the Hallowed Sepulchre! Total completions: <col=ff0000>1,114</col>.", 1114);
+		ChatMessage chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "You have completed Floor 5 of the Hallowed Sepulchre! Total completions: <col=ff0000>1,114</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessage);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "hallowed sepulchre floor 5", 1114);
 	}
 
 	@Test
 	public void testHsGhcKc()
 	{
-		testKillCountChatMessage("hallowed sepulchre", "You have opened the Grand Hallowed Coffin <col=ff0000>1,542</col> times!", 1542);
+		ChatMessage chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "You have opened the Grand Hallowed Coffin <col=ff0000>1,542</col> times!", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessage);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "hallowed sepulchre", 1542);
 	}
 
 	@Test
@@ -1260,57 +1257,49 @@ public class ChatCommandsPluginTest
 	@Test
 	public void testGuardiansOfTheRift()
 	{
-		testKillCountChatMessage("guardians of the rift", "Amount of rifts you have closed: <col=ff0000>1,627</col>.", 1627);
+		ChatMessage chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "Amount of rifts you have closed: <col=ff0000>1,627</col>.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessage);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "guardians of the rift", 1627);
 	}
 
 	@Test
 	public void testBirdsEgg()
 	{
-		testKillCountChatMessage("bird's egg offerings", "You have made <col=ff0000>one</col> offering.", 1);
-		testKillCountChatMessage("bird's egg offerings", "You have made <col=ff0000>420</col> offerings.", 420);
-		testKillCountChatMessage("bird's egg offerings", "You have made <col=ff0000>10,000</col> offerings.", 10_000);
-	}
+		ChatMessage chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "You have made <col=ff0000>one</col> offering.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessage);
 
-	@Test
-	public void testBrimstoneChest()
-	{
-		testKillCountChatMessage("brimstone chest", "You have opened the Brimstone chest 0 times.", 0);
-		testKillCountChatMessage("brimstone chest", "You have opened the Brimstone chest once.", 1);
-		testKillCountChatMessage("brimstone chest", "You have opened the Brimstone chest 2 times.", 2);
-		testKillCountChatMessage("brimstone chest", "You have opened the Brimstone chest 1,234 times.", 1234);
-	}
+		verify(configManager).setRSProfileConfiguration("killcount", "bird's egg offerings", 1);
 
-	@Test
-	public void testLarransChests()
-	{
-		testKillCountChatMessage("larran's small chest", "You have opened Larran's small chest 0 times.", 0);
-		testKillCountChatMessage("larran's small chest", "You have opened Larran's small chest once.", 1);
-		testKillCountChatMessage("larran's small chest", "You have opened Larran's small chest 2 times.", 2);
+		chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "You have made <col=ff0000>420</col> offerings.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessage);
 
-		testKillCountChatMessage("larran's big chest", "You have opened Larran's big chest 0 times.", 0);
-		testKillCountChatMessage("larran's big chest", "You have opened Larran's big chest once.", 1);
-		testKillCountChatMessage("larran's big chest", "You have opened Larran's big chest 26,644 times.", 26644);
-	}
+		verify(configManager).setRSProfileConfiguration("killcount", "bird's egg offerings", 420);
 
-	@Test
-	public void testCrystalChest()
-	{
-		testKillCountChatMessage("crystal chest", "You have never opened the crystal chest.", 0);
-		testKillCountChatMessage("crystal chest", "You have opened the crystal chest once.", 1);
-		testKillCountChatMessage("crystal chest", "You have opened the crystal chest 172 times.", 172);
-		testKillCountChatMessage("crystal chest", "You have opened the crystal chest 2,015 times.", 2015);
+		chatMessage = new ChatMessage(null, GAMEMESSAGE, "", "You have made <col=ff0000>10,000</col> offerings.", null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessage);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "bird's egg offerings", 10_000);
 	}
 
 	@Test
 	public void testHunterRumours()
 	{
-		testKillCountChatMessage("hunter rumours", "You have completed <col=ff3045>77</col> rumours for the Hunter Guild.", 77);
+		testHunterRumourChatMessage("You have completed <col=ff3045>77</col> rumours for the Hunter Guild.", 77);
 		// single kc has no s.
-		testKillCountChatMessage("hunter rumours", "You have completed <col=ff3045>1</col> rumour for the Hunter Guild.", 1);
+		testHunterRumourChatMessage("You have completed <col=ff3045>1</col> rumour for the Hunter Guild.", 1);
 		// opaque chatbox has different color
-		testKillCountChatMessage("hunter rumours", "You have completed <col=e00a19>2</col> rumours for the Hunter Guild.", 2);
+		testHunterRumourChatMessage("You have completed <col=e00a19>2</col> rumours for the Hunter Guild.", 2);
 		// with comma in number
-		testKillCountChatMessage("hunter rumours", "You have completed <col=ff3045>1,032</col> rumours for the Hunter Guild.", 1032);
+		testHunterRumourChatMessage("You have completed <col=ff3045>1,032</col> rumours for the Hunter Guild.", 1032);
+	}
+
+	private void testHunterRumourChatMessage(String message, int kc)
+	{
+		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", message, null, 0);
+		chatCommandsPlugin.onChatMessage(chatMessageEvent);
+
+		verify(configManager).setRSProfileConfiguration("killcount", "hunter rumours", kc);
 	}
 
 	@Test
@@ -1399,13 +1388,5 @@ public class ChatCommandsPluginTest
 		verify(configManager).setRSProfileConfiguration("killcount", "tombs of amascut entry mode", 9);
 		verify(configManager).setRSProfileConfiguration("personalbest", "tombs of amascut entry mode", 20 * 60 + 31.);
 		verify(configManager).setRSProfileConfiguration("personalbest", "tombs of amascut entry mode 2 players", 20 * 60 + 31.);
-	}
-
-	private void testKillCountChatMessage(String key, String message, int kc)
-	{
-		ChatMessage chatMessageEvent = new ChatMessage(null, GAMEMESSAGE, "", message, null, 0);
-		chatCommandsPlugin.onChatMessage(chatMessageEvent);
-
-		verify(configManager).setRSProfileConfiguration("killcount", key, kc);
 	}
 }

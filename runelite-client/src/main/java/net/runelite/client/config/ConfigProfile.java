@@ -48,9 +48,6 @@ public class ConfigProfile
 	@Setter(AccessLevel.PACKAGE)
 	private boolean isMember;
 	@Getter
-	@Setter(AccessLevel.PACKAGE)
-	private String discordWebhookUrl;
-	@Getter
 	@Setter
 	private boolean sync;
 	@Getter

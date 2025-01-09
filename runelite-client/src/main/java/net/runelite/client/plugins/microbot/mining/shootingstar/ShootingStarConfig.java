@@ -12,6 +12,8 @@ public interface ShootingStarConfig extends Config {
     
     String configGroup = "shooting-star";
     String displayAsMinutes = "displayAsMinutes";
+    String hideF2PWorlds = "hideF2PWorlds";
+    String hideMembersWorlds = "hideMembersWorlds";
     String hideWildernessLocations = "hideWildernessLocations";
     String useNearestHighTierStar = "useNearestHighTierStar";
     String useBreakAtBank = "useBreakAtBank";
@@ -66,10 +68,32 @@ public interface ShootingStarConfig extends Config {
     String panelSection = "panel";
 
     @ConfigItem(
+            keyName = hideMembersWorlds,
+            name = "Hide Members Worlds",
+            description = "Hide Members worlds inside of the panel",
+            position = 0,
+            section = panelSection
+    )
+    default boolean isHideMembersWorlds() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = hideF2PWorlds,
+            name = "Hide F2P Worlds",
+            description = "Hide F2P worlds inside of the panel",
+            position = 1,
+            section = panelSection
+    )
+    default boolean isHideF2PWorlds() {
+        return false;
+    }
+
+    @ConfigItem(
             keyName = hideWildernessLocations,
             name = "Hide Wilderness Locations",
             description = "Hide Wilderness locations inside of the panel",
-            position = 0,
+            position = 2,
             section = panelSection
     )
     default boolean isHideWildernessLocations() {
@@ -80,7 +104,7 @@ public interface ShootingStarConfig extends Config {
             keyName = displayAsMinutes,
             name = "Display as Minutes",
             description = "Shows time left as minutes",
-            position = 1,
+            position = 3,
             section = panelSection
     )
     default boolean isDisplayAsMinutes() {

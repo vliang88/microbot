@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.plugins.microbot.Microbot;
-import net.runelite.client.plugins.microbot.util.antiban.Rs2AntibanSettings;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -121,8 +120,7 @@ public enum PlayStyle {
         log.info("Primary tick interval: {}", primaryTickInterval);
         secondaryTickInterval = adjustInterval(secondaryTickInterval, amplitude);
         log.info("Secondary tick interval: {}", secondaryTickInterval);
-        if(Rs2AntibanSettings.devDebug)
-            Microbot.log("Slightly adjusting playStyle intervals.");
+        Microbot.log("Slightly adjusting playStyle intervals.");
     }
 
     // Helper method to adjust intervals using the sine of the phase
@@ -148,8 +146,7 @@ public enum PlayStyle {
         boolean refocus = Math.random() < refocusProbability;
         if (refocus) {
             PlayStyle newProfile = values()[0];
-            if(Rs2AntibanSettings.devDebug)
-                Microbot.log("Refocusing, switching to: " + newProfile.getName());
+            Microbot.log("Refocusing, switching to: " + newProfile.getName());
             return newProfile;
         }
         int index = this.ordinal();
@@ -174,8 +171,7 @@ public enum PlayStyle {
         }
 
         PlayStyle newProfile = values()[index];
-        if(Rs2AntibanSettings.devDebug)
-            Microbot.log("Switched profile to: " + newProfile.getName());
+        Microbot.log("Switched profile to: " + newProfile.getName());
         return newProfile;
     }
 

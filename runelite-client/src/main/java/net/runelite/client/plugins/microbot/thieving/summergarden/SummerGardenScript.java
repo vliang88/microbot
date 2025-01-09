@@ -17,7 +17,6 @@ import net.runelite.client.plugins.microbot.util.grounditem.Rs2GroundItem;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
-import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 
@@ -237,8 +236,8 @@ public class SummerGardenScript extends Script {
         if (Microbot.getClient().getLocalPlayer().getWorldLocation().equals(WORLD_POINT_MAZE_STARTING_LOCATION)) {
             if (config.waitForOneClick() || ElementalCollisionDetector.getTicksUntilStart() == 0) {
                 Rs2GameObject.interact(OBJECT_SUMMER_TREE);
-                sleepUntil(() -> Rs2Player.isMoving());
-                sleepUntil(() -> !Rs2Player.isMoving(), 30000);
+                sleepUntil(() -> Microbot.isMoving());
+                sleepUntil(() -> !Microbot.isMoving(), 30000);
                 sleepUntilOnClientThread(() -> Microbot.getClient().getLocalPlayer().getWorldLocation().getY() < 5481);
                 sleep(1500);//caught or success timeout
             }
@@ -254,8 +253,8 @@ public class SummerGardenScript extends Script {
         TileObject gate = Rs2GameObject.findObjectById(ObjectID.GATE_11987);
         if (gate != null) {
             Rs2GameObject.interact(gate);
-            sleepUntil(Rs2Player::isMoving);
-            sleepUntil(() -> !Rs2Player.isMoving());
+            sleepUntil(Microbot::isMoving);
+            sleepUntil(() -> !Microbot.isMoving());
             sleepUntilOnClientThread(() -> Microbot.getClient().getLocalPlayer().getWorldLocation().equals(WORLD_POINT_MAZE_STARTING_LOCATION));
         }
     }

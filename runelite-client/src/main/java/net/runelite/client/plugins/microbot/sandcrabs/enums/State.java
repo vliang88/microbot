@@ -6,6 +6,5 @@ public enum State {
     RESET_AGGRO,
     WALK_BACK,
     HOP_WORLD,
-    SCAN_LOCATIONS,
-    BANK
+    SCAN_LOCATIONS
 }

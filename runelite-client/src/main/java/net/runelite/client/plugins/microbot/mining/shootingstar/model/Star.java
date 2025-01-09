@@ -109,10 +109,6 @@ public class Star {
     public boolean isF2PWorld() {
         return !this.isGameModeWorld() && !this.getWorldObject().getTypes().contains(WorldType.MEMBERS);
     }
-
-    public boolean isInSeasonalWorld() {
-        return this.getWorldObject().getTypes().contains(WorldType.SEASONAL);
-    }
     
     @Override
     public boolean equals(Object obj) {
@@ -124,12 +120,5 @@ public class Star {
             return false;
         Star other = (Star) obj;
         return this.getWorld() == other.getWorld() && this.getShootingStarLocation().equals(other.getShootingStarLocation());
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Integer.hashCode(world);
-        result = 31 * result + (shootingStarLocation != null ? shootingStarLocation.hashCode() : 0);
-        return result;
     }
 }

@@ -44,8 +44,6 @@ import net.runelite.client.account.SessionManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.*;
-import net.runelite.client.plugins.microbot.Microbot;
-import net.runelite.client.plugins.microbot.inventorysetups.InventorySetup;
 import net.runelite.client.plugins.microbot.util.security.Login;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.RunnableExceptionLogger;
@@ -332,25 +330,6 @@ public class ConfigManager
 
 			profile.setMember(isMember);
 			lock.dirty();
-		}
-	}
-
-	public void setDiscordWebhookUrl(ConfigProfile profile, String discordWebhookUrl) {
-		// Flush pending config changes first in case the profile being
-		// synced is the active profile.
-		sendConfig();
-
-		try (ProfileManager.Lock lock = profileManager.lock()) {
-			profile = lock.findProfile(profile.getId());
-			if (profile == null) {
-				return;
-			}
-
-			// Update the discordWebhookUrl only if it's changed
-			if (!Objects.equals(profile.getDiscordWebhookUrl(), discordWebhookUrl)) {
-				profile.setDiscordWebhookUrl(discordWebhookUrl);
-				lock.dirty();
-			}
 		}
 	}
 
@@ -1302,10 +1281,6 @@ public class ConfigManager
 				return gson.fromJson(str, parameterizedType);
 			}
 		}
-		if(type == InventorySetup.class)
-		{
-			return gson.fromJson(str, type);
-		}
 		if (type instanceof Class)
 		{
 			Class<?> clazz = (Class<?>) type;
@@ -1319,7 +1294,7 @@ public class ConfigManager
 					// Guice holds references to all jitted types.
 					// To allow class unloading, use a temporary child injector
 					// and use it to get the instance, and cache it a weak map.
-					serializer = Microbot.getInjector()
+					serializer = RuneLite.getInjector()
 							.createChildInjector()
 							.getInstance(serializerClass);
 					serializers.put(type, serializer);
@@ -1382,10 +1357,6 @@ public class ConfigManager
 		{
 			return gson.toJson(object, Set.class);
 		}
-		if (object instanceof InventorySetup)
-		{
-			return gson.toJson(object, InventorySetup.class);
-		}
 		if (object != null)
 		{
 			ConfigSerializer configSerializer = object.getClass().getAnnotation(ConfigSerializer.class);
@@ -1395,7 +1366,7 @@ public class ConfigManager
 				Serializer serializer = serializers.get(serializerClass);
 				if (serializer == null)
 				{
-					serializer = Microbot.getInjector()
+					serializer = RuneLite.getInjector()
 							.createChildInjector()
 							.getInstance(serializerClass);
 					serializers.put(serializerClass, serializer);

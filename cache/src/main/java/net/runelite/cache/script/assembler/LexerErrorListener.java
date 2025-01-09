@@ -28,7 +28,7 @@ import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 
-class LexerErrorListener extends BaseErrorListener
+public class LexerErrorListener extends BaseErrorListener
 {
 	private int errors;
 

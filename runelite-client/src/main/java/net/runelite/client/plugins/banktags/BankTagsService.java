@@ -25,66 +25,19 @@
  */
 package net.runelite.client.plugins.banktags;
 
-import javax.annotation.Nullable;
-import net.runelite.client.plugins.banktags.tabs.Layout;
+import net.runelite.client.plugins.banktags.tabs.TagTab;
 
-/**
- * API for the bank tags plugin
- *
- * @see TagManager
- * @see net.runelite.client.plugins.banktags.tabs.TabManager
- * @see net.runelite.client.plugins.banktags.tabs.LayoutManager
- */
 public interface BankTagsService
 {
 	/**
-	 * Bank tag is allowed to be modified
+	 * Open the given tag tab.
+	 * @param tagTab
 	 */
-	int OPTION_ALLOW_MODIFICATIONS = 0x1;
-	/**
-	 * Option to hide the tag name.
-	 */
-	int OPTION_HIDE_TAG_NAME = 0x2;
-	/**
-	 * Option to prevent {@link #openBankTag(String, int)} from performing a layout
-	 */
-	int OPTION_NO_LAYOUT = 0x4;
+	void openTagTab(TagTab tagTab);
 
 	/**
-	 * Open the given bank tag. The tag may have an associated {@link net.runelite.client.plugins.banktags.tabs.TagTab},
-	 * but this isn't required. If the tag has an associated {@link net.runelite.client.plugins.banktags.tabs.Layout},
-	 * the layout will be applied.
-	 *
-	 * @param tag the tag name
-	 * @param options
-	 * @see #OPTION_ALLOW_MODIFICATIONS
-	 * @see #OPTION_HIDE_TAG_NAME
+	 * Open the given bank tag.
+	 * @param bankTag
 	 */
-	void openBankTag(String tag, int options);
-
-	/**
-	 * Close the currently open {@link BankTag}.
-	 */
-	void closeBankTag();
-
-	/**
-	 * Get the currently active bank tag
-	 * @return
-	 */
-	@Nullable
-	String getActiveTag();
-
-	/**
-	 * Get the currently open {@link BankTag}
-	 * @return
-	 */
-	@Nullable
-	BankTag getActiveBankTag();
-
-	/**
-	 * Get the currently active {@link Layout}
-	 * @return
-	 */
-	@Nullable
-	Layout getActiveLayout();
+	void openBankTag(BankTag bankTag);
 }

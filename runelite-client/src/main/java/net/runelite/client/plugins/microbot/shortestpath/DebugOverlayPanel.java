@@ -2,6 +2,7 @@ package net.runelite.client.plugins.microbot.shortestpath;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.shortestpath.pathfinder.Pathfinder;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -38,6 +39,8 @@ public class DebugOverlayPanel extends OverlayPanel {
 
     @Override
     public Dimension render(Graphics2D graphics) {
+        if (ShortestPathPlugin.getPathfinder() == null)
+            return null;
         Pathfinder pathfinder = plugin.getPathfinder();
         Pathfinder.PathfinderStats stats;
         if (pathfinder == null || (stats = pathfinder.getStats()) == null) {
@@ -55,6 +58,10 @@ public class DebugOverlayPanel extends OverlayPanel {
 
         components.add(separator);
 
+        components.add(makeLine("Microbot status: ", Microbot.status));
+
+        components.add(separator);
+
         String pathLength = Integer.toString(pathfinder.getPath().size());
         components.add(makeLine("Path Length:", pathLength));
 
@@ -63,7 +70,7 @@ public class DebugOverlayPanel extends OverlayPanel {
         String nodes = Integer.toString(stats.getNodesChecked());
         components.add(makeLine("Nodes:", nodes));
 
-        String transports = Integer.toString(stats.getTransportsChecked());
+        String transports = Integer.toString(stats.getTransportsChecked().size());
         components.add(makeLine("Transports:", transports));
 
         String totalNodes = Integer.toString(stats.getTotalNodesChecked());

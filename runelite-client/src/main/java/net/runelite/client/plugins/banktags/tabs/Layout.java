@@ -26,30 +26,25 @@
 package net.runelite.client.plugins.banktags.tabs;
 
 import java.util.Arrays;
-import lombok.Getter;
 import lombok.NonNull;
 
 public class Layout
 {
-	@Getter
-	private final String tag;
 	private int[] layout;
+	boolean dirty = true;
 
-	public Layout(String tag)
+	public Layout()
 	{
-		this.tag = tag;
 		this.layout = new int[0];
 	}
 
-	public Layout(String tag, @NonNull int[] layout)
+	public Layout(@NonNull int[] layout)
 	{
-		this.tag = tag;
 		this.layout = layout;
 	}
 
 	public Layout(Layout other)
 	{
-		tag = other.tag;
 		layout = other.layout.clone();
 	}
 
@@ -88,6 +83,7 @@ public class Layout
 		}
 
 		layout[pos] = itemId;
+		dirty = true;
 	}
 
 	public void addItem(int itemId)
@@ -97,6 +93,8 @@ public class Layout
 
 	public void addItemAfter(int itemId, int pos)
 	{
+		dirty = true;
+
 		int i;
 		for (i = pos; i < layout.length; ++i)
 		{
@@ -118,6 +116,7 @@ public class Layout
 			if (layout[i] == itemId)
 			{
 				layout[i] = -1;
+				dirty = true;
 			}
 		}
 	}
@@ -130,6 +129,7 @@ public class Layout
 		}
 
 		layout[pos] = -1;
+		dirty = true;
 	}
 
 	void swap(int sidx, int tidx)
@@ -137,6 +137,7 @@ public class Layout
 		int sid = layout[sidx];
 		layout[sidx] = layout[tidx];
 		layout[tidx] = sid;
+		dirty = true;
 	}
 
 	void insert(int sidx, int tidx)
@@ -168,6 +169,7 @@ public class Layout
 			System.arraycopy(layout, tidx, layout, tidx + 1, i - tidx);
 			layout[tidx] = sid;
 		}
+		dirty = true;
 	}
 
 	public int count(int itemId)
@@ -196,5 +198,6 @@ public class Layout
 			Arrays.fill(n, layout.length, size, -1);
 		}
 		layout = n;
+		dirty = true;
 	}
 }

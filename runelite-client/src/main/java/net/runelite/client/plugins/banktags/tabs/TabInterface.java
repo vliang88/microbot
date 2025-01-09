@@ -88,7 +88,6 @@ import net.runelite.client.plugins.banktags.BankTagsConfig;
 import net.runelite.client.plugins.banktags.BankTagsPlugin;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.TAG_SEARCH;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.VAR_TAG_SUFFIX;
-import net.runelite.client.plugins.banktags.BankTagsService;
 import net.runelite.client.plugins.banktags.TagManager;
 import net.runelite.client.ui.JagexColors;
 import net.runelite.client.util.ColorUtil;
@@ -113,7 +112,7 @@ public class TabInterface
 	private static final String REMOVE_TAG = "Remove-tag";
 	private static final String TAG_GEAR = "Tag-equipment";
 	private static final String TAG_INVENTORY = "Tag-inventory";
-	private static final String TAGTABS = "tagtabs";
+	private static final String TAB_MENU_KEY = "tagtabs";
 	private static final String OPEN_TAB_MENU = "View tag tabs";
 	static final String ENABLE_LAYOUT = "Enable layout";
 	static final String DISABLE_LAYOUT = "Disable layout";
@@ -151,7 +150,6 @@ public class TabInterface
 	private final ItemManager itemManager;
 	private final TagManager tagManager;
 	private final TabManager tabManager;
-	private final LayoutManager layoutManager;
 	private final ChatboxPanelManager chatboxPanelManager;
 	private final BankTagsConfig config;
 	private final BankSearch bankSearch;
@@ -160,9 +158,7 @@ public class TabInterface
 
 	private boolean enabled;
 	@Getter
-	private String activeTag;
-	private Layout activeLayout;
-	private int activeOptions;
+	private TagTab activeTab;
 	@Getter
 	private boolean tagTabActive;
 	private int tagTabFirstChildIdx = -1;
@@ -184,7 +180,6 @@ public class TabInterface
 		final ItemManager itemManager,
 		final TagManager tagManager,
 		final TabManager tabManager,
-		final LayoutManager layoutManager,
 		final ChatboxPanelManager chatboxPanelManager,
 		final BankTagsConfig config,
 		final BankSearch bankSearch,
@@ -198,12 +193,16 @@ public class TabInterface
 		this.itemManager = itemManager;
 		this.tagManager = tagManager;
 		this.tabManager = tabManager;
-		this.layoutManager = layoutManager;
 		this.chatboxPanelManager = chatboxPanelManager;
 		this.config = config;
 		this.bankSearch = bankSearch;
 		this.searchProvider = searchProvider;
 		this.chatMessageManager = chatMessageManager;
+	}
+
+	public boolean isActive()
+	{
+		return activeTab != null;
 	}
 
 	@Subscribe
@@ -247,7 +246,7 @@ public class TabInterface
 		}
 		else if (event.getScriptId() == ScriptID.BANKMAIN_SEARCH_TOGGLE)
 		{
-			if (activeTag != null || tagTabActive)
+			if (activeTab != null || tagTabActive)
 			{
 				// close the active tab when search is pressed
 				closeTag(false);
@@ -271,10 +270,10 @@ public class TabInterface
 				Widget bankTitle = client.getWidget(ComponentID.BANK_TITLE_BAR);
 				bankTitle.setText("Tag tab tab");
 			}
-			else if (activeTag != null)
+			else if (activeTab != null)
 			{
 				Widget bankTitle = client.getWidget(ComponentID.BANK_TITLE_BAR);
-				bankTitle.setText("Tag tab <col=ff0000>" + activeTag + "</col>");
+				bankTitle.setText("Tag tab <col=ff0000>" + activeTab.getTag() + "</col>");
 			}
 
 			// Recompute scroll size. Only required for tag tab tab since it doesn't show real items.
@@ -296,10 +295,8 @@ public class TabInterface
 		{
 			enabled = false;
 			upButton = downButton = newTab = scrollComponent = parent = null;
-			activeTag = null;
-			activeLayout = null;
-			activeOptions = 0;
-			plugin.openTag(null, null);
+			activeTab = null;
+			plugin.open(null);
 			tagTabActive = false;
 			tagTabFirstChildIdx = -1;
 		}
@@ -349,8 +346,9 @@ public class TabInterface
 			// the server will resync the last opened vanilla tab when the bank is opened
 			client.setVarbit(Varbits.CURRENT_BANK_TAB, 0);
 			var tab = config.tab();
-			var layout = layoutManager.loadLayout(tab);
-			plugin.openTag(tab, layout);
+			activeTab = tabManager.find(tab);
+			tagTabActive = TAB_MENU_KEY.equals(tab);
+			plugin.open(activeTab);
 		}
 
 		// Move equipment button to the titlebar
@@ -393,10 +391,8 @@ public class TabInterface
 	public void deinit()
 	{
 		enabled = false;
-		activeTag = null;
-		activeLayout = null;
-		activeOptions = 0;
-		plugin.openTag(null, null);
+		activeTab = null;
+		plugin.open(null);
 
 		upButton = downButton = newTab = scrollComponent = null;
 
@@ -426,11 +422,11 @@ public class TabInterface
 
 		if (!Strings.isNullOrEmpty(event.getMenuTarget()))
 		{
-			if (activeTag != null && Text.removeTags(event.getMenuTarget()).equals(activeTag))
+			if (activeTab != null && Text.removeTags(event.getMenuTarget()).equals(activeTab.getTag()))
 			{
 				for (Integer item : items)
 				{
-					tagManager.addTag(item, activeTag, false);
+					tagManager.addTag(item, activeTab.getTag(), false);
 				}
 
 				reloadActiveTab();
@@ -502,7 +498,7 @@ public class TabInterface
 					rebuildTabs();
 					rebuildTagTabTab();
 
-					if (tab.getTag().equals(activeTag))
+					if (activeTab != null && tab.getTag().equals(activeTab.getTag()))
 					{
 						bankSearch.reset(true);
 					}
@@ -517,7 +513,7 @@ public class TabInterface
 				break;
 			case NEWTAB_OP_OPEN_TAB_MENU:
 				client.setVarbit(Varbits.CURRENT_BANK_TAB, 0);
-				plugin.openTag(TAGTABS, null, 0);
+				openNamedTag(TAB_MENU_KEY, true);
 				break;
 		}
 	}
@@ -563,7 +559,7 @@ public class TabInterface
 
 		if (dataIter.hasNext())
 		{
-			Layout l = new Layout(name);
+			Layout l = new Layout();
 			while (dataIter.hasNext())
 			{
 				final int idx = Integer.parseInt(dataIter.next());
@@ -572,7 +568,7 @@ public class TabInterface
 				tagManager.addTag(itemId, name, false);
 			}
 
-			layoutManager.saveLayout(l);
+			tab.setLayout(l);
 		}
 
 		return tab;
@@ -600,7 +596,8 @@ public class TabInterface
 		name = sb.toString();
 
 		TagTab tab = tabManager.load(name);
-		Layout l = new Layout(name);
+		Layout l = new Layout();
+		tab.setLayout(l);
 
 		while (dataIter.hasNext())
 		{
@@ -625,8 +622,6 @@ public class TabInterface
 			tagManager.addTag(itemId, name, itemId < 0);
 		}
 
-		layoutManager.saveLayout(l);
-
 		return tab;
 	}
 
@@ -647,16 +642,15 @@ public class TabInterface
 
 				Widget clicked = event.getSource();
 
-				String tag = Text.removeTags(clicked.getName());
+				TagTab tab = tabManager.find(Text.removeTags(clicked.getName()));
 
-				if (tag.equals(activeTag))
+				if (tab.equals(activeTab))
 				{
 					closeTag(true);
 				}
 				else
 				{
-					Layout layout = layoutManager.loadLayout(tag);
-					plugin.openTag(tag, layout);
+					openTag(tab, true);
 				}
 
 				client.playSoundEffect(SoundEffectID.UI_BOOP);
@@ -683,26 +677,23 @@ public class TabInterface
 			}
 			case TAB_OP_LAYOUT:
 			{
-				String tag = Text.removeTags(event.getSource().getName());
-				Layout layout = layoutManager.loadLayout(tag);
-
-				if (layout == null)
+				TagTab tab = tabManager.find(Text.removeTags(event.getSource().getName()));
+				if (tab == null)
 				{
-					layout = new Layout(tag);
-					layoutManager.saveLayout(layout);
-					sendChatMessage("Tag tab '" + tag + "' is now in layout mode. You may reorder the items without changing their order in the bank.");
+					return;
+				}
+
+				if (!tab.hasLayout())
+				{
+					tab.setLayout(new Layout());
+					sendChatMessage("Tag tab '" + tab.getTag() + "' is now in layout mode. You may reorder the items without changing their order in the bank.");
 				}
 				else
 				{
-					layoutManager.removeLayout(tag);
-					layout = null;
-					sendChatMessage("Tag tab '" + tag + "' is no longer in layout mode");
+					tab.setLayout(null);
+					sendChatMessage("Tag tab '" + tab.getTag() + "' is no longer in layout mode");
 				}
-
-				if (tag.equals(activeTag))
-				{
-					plugin.openTag(tag, layout);
-				}
+				tabManager.save();
 
 				bankSearch.layoutBank();
 				break;
@@ -723,9 +714,7 @@ public class TabInterface
 				break;
 			case TAB_OP_EXPORT_TAB:
 				final List<String> data = new ArrayList<>();
-				final String tag = Text.removeTags(event.getOpbase());
-				final TagTab tagTab = tabManager.find(tag);
-				final Layout layout = layoutManager.loadLayout(tag);
+				final TagTab tagTab = tabManager.find(Text.removeTags(event.getOpbase()));
 				data.add("banktags");
 				data.add("1");
 				data.add(tagTab.getTag());
@@ -733,22 +722,22 @@ public class TabInterface
 
 				for (Integer item : tagManager.getItemsForTag(tagTab.getTag()))
 				{
-					if (layout == null || layout.count(item) == 0)
+					if (!tagTab.hasLayout() || tagTab.getLayout().count(item) == 0)
 					{
 						data.add(String.valueOf(item));
 					}
 				}
 
-				if (layout != null)
+				if (tagTab.hasLayout())
 				{
 					data.add("layout");
-					int[] l = layout.getLayout();
-					for (int idx = 0; idx < l.length; ++idx)
+					int[] layout = tagTab.getLayout().getLayout();
+					for (int idx = 0; idx < layout.length; ++idx)
 					{
-						if (l[idx] != -1)
+						if (layout[idx] != -1)
 						{
 							data.add(String.valueOf(idx));
-							data.add(String.valueOf(l[idx]));
+							data.add(String.valueOf(layout[idx]));
 						}
 					}
 				}
@@ -767,11 +756,11 @@ public class TabInterface
 	@Subscribe
 	private void onMenuEntryAdded(MenuEntryAdded event)
 	{
-		if ((activeOptions & BankTagsService.OPTION_ALLOW_MODIFICATIONS) != 0
+		if (activeTab != null
 			&& event.getActionParam1() == ComponentID.BANK_ITEM_CONTAINER
 			&& event.getOption().equals("Examine"))
 		{
-			if (activeLayout != null)
+			if (activeTab.hasLayout())
 			{
 				client.createMenuEntry(-1)
 					.setParam0(event.getActionParam0())
@@ -784,7 +773,7 @@ public class TabInterface
 					.onClick(this::opDuplicateItem);
 			}
 
-			if (activeLayout != null && activeLayout.count(itemManager.canonicalize(event.getItemId())) > 1)
+			if (activeTab.hasLayout() && activeTab.getLayout().count(itemManager.canonicalize(event.getItemId())) > 1)
 			{
 				client.createMenuEntry(-1)
 					.setParam0(event.getActionParam0())
@@ -797,30 +786,29 @@ public class TabInterface
 			}
 			else
 			{
-				boolean hidden = tagManager.isHidden(activeTag);
 				client.createMenuEntry(-1)
 					.setParam0(event.getActionParam0())
 					.setParam1(event.getActionParam1())
 					.setTarget(event.getTarget())
-					.setOption(!hidden && (activeOptions & BankTagsService.OPTION_HIDE_TAG_NAME) == 0 ? REMOVE_TAG + " (" + activeTag + ")" : REMOVE_TAG)
+					.setOption(REMOVE_TAG + " (" + activeTab.getTag() + ")")
 					.setType(MenuAction.RUNELITE)
 					.setIdentifier(event.getIdentifier())
 					.setItemId(event.getItemId())
 					.onClick(e ->
 					{
 						final int itemId = e.getItemId();
-						if (activeLayout != null)
+						if (activeTab.hasLayout())
 						{
-							activeLayout.removeItem(itemId);
-							layoutManager.saveLayout(activeLayout);
+							activeTab.getLayout().removeItem(itemId);
+							tabManager.save();
 						}
-						tagManager.removeTag(itemId, activeTag);
+						tagManager.removeTag(itemId, activeTab.getTag());
 						bankSearch.layoutBank(); // re-layout to filter the removed item out
 					});
 			}
 		}
 		// Duplicate/Remove on layout placeholders
-		else if (activeTag != null
+		else if (activeTab != null
 			&& event.getActionParam1() == ComponentID.BANK_ITEM_CONTAINER
 			&& event.getOption().equals(DUPLICATE_ITEM))
 		{
@@ -828,7 +816,7 @@ public class TabInterface
 			event.getMenuEntry().setType(MenuAction.RUNELITE_LOW_PRIORITY);
 			event.getMenuEntry().onClick(this::opDuplicateItem);
 		}
-		if (activeTag != null
+		if (activeTab != null
 			&& event.getActionParam1() == ComponentID.BANK_ITEM_CONTAINER
 			&& event.getOption().equals(REMOVE_LAYOUT))
 		{
@@ -840,10 +828,9 @@ public class TabInterface
 		{
 			createMenuEntry(event, TAG_INVENTORY, event.getTarget());
 
-			if (activeTag != null && !tagManager.isHidden(activeTag)
-				&& (activeOptions & (BankTagsService.OPTION_ALLOW_MODIFICATIONS | BankTagsService.OPTION_HIDE_TAG_NAME)) == BankTagsService.OPTION_ALLOW_MODIFICATIONS)
+			if (activeTab != null)
 			{
-				createMenuEntry(event, TAG_INVENTORY, ColorUtil.wrapWithColorTag(activeTag, HILIGHT_COLOR));
+				createMenuEntry(event, TAG_INVENTORY, ColorUtil.wrapWithColorTag(activeTab.getTag(), HILIGHT_COLOR));
 			}
 		}
 		else if (event.getActionParam1() == ComponentID.BANK_DEPOSIT_EQUIPMENT
@@ -851,33 +838,30 @@ public class TabInterface
 		{
 			createMenuEntry(event, TAG_GEAR, event.getTarget());
 
-			if (activeTag != null && !tagManager.isHidden(activeTag)
-				&& (activeOptions & (BankTagsService.OPTION_ALLOW_MODIFICATIONS | BankTagsService.OPTION_HIDE_TAG_NAME)) == BankTagsService.OPTION_ALLOW_MODIFICATIONS)
+			if (activeTab != null)
 			{
-				createMenuEntry(event, TAG_GEAR, ColorUtil.wrapWithColorTag(activeTag, HILIGHT_COLOR));
+				createMenuEntry(event, TAG_GEAR, ColorUtil.wrapWithColorTag(activeTab.getTag(), HILIGHT_COLOR));
 			}
 		}
-
-		layoutManager.onMenuEntryAdded(event, this);
 	}
 
 	private void opDuplicateItem(MenuEntry e)
 	{
 		int id = itemManager.canonicalize(e.getItemId());
 		log.debug("Duplicate item {} at {}", itemManager.getItemComposition(id).getName(), e.getParam0());
-		activeLayout.addItemAfter(id, e.getParam0());
-		layoutManager.saveLayout(activeLayout);
+		activeTab.getLayout().addItemAfter(id, e.getParam0());
+		tabManager.save();
 		bankSearch.layoutBank();
 	}
 
 	private void opRemoveLayout(MenuEntry e)
 	{
-		activeLayout.removeItemAtPos(e.getParam0());
-		layoutManager.saveLayout(activeLayout);
+		activeTab.getLayout().removeItemAtPos(e.getParam0());
+		tabManager.save();
 		bankSearch.layoutBank();
 	}
 
-	@Subscribe(priority = -1)
+	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
 		// Close the chatbox input when clicking on things in the bank, to mimic how actions like withdrawing
@@ -904,8 +888,6 @@ public class TabInterface
 		{
 			handleDeposit(event, event.getParam1() == ComponentID.BANK_DEPOSIT_INVENTORY);
 		}
-
-		layoutManager.onMenuOptionClicked(event);
 	}
 
 	@Subscribe
@@ -921,9 +903,8 @@ public class TabInterface
 
 		// Returning early or nulling the drag release listener has no effect. Hence, we need to
 		// null the draggedOnWidget instead.
-		if (draggedWidget.getId() == ComponentID.BANK_ITEM_CONTAINER && activeTag != null
-			&& (activeLayout == null && config.preventTagTabDrags()
-			|| (activeOptions & BankTagsService.OPTION_ALLOW_MODIFICATIONS) == 0))
+		if (draggedWidget.getId() == ComponentID.BANK_ITEM_CONTAINER && activeTab != null && !activeTab.hasLayout()
+			&& config.preventTagTabDrags())
 		{
 			client.setDraggedOnWidget(null);
 		}
@@ -1013,9 +994,9 @@ public class TabInterface
 	{
 		w.setAction(TAB_OP_OPEN_TAG, VIEW_TAB);
 		w.setAction(TAB_OP_CHANGE_ICON, CHANGE_ICON);
-		if (!TAGTABS.equals(tab.getTag()))
+		if (!TAB_MENU_KEY.equals(tab.getTag()))
 		{
-			w.setAction(TAB_OP_LAYOUT, activeLayout != null ? DISABLE_LAYOUT : ENABLE_LAYOUT);
+			w.setAction(TAB_OP_LAYOUT, tab.hasLayout() ? DISABLE_LAYOUT : ENABLE_LAYOUT);
 		}
 		w.setAction(TAB_OP_EXPORT_TAB, EXPORT_TAB);
 		w.setAction(TAB_OP_RENAME_TAB, RENAME_TAB);
@@ -1044,15 +1025,13 @@ public class TabInterface
 
 	private void deleteTab(String tag)
 	{
-		if (tag.equals(activeTag))
+		if (activeTab != null && activeTab.getTag().equals(tag))
 		{
 			closeTag(true);
 		}
 
 		tabManager.remove(tag);
 		tabManager.save();
-
-		layoutManager.removeLayout(tag);
 
 		repositionButtons();
 		rebuildTabs();
@@ -1071,26 +1050,11 @@ public class TabInterface
 					if (tabManager.find(newTag) == null)
 					{
 						TagTab tagTab = tabManager.find(oldTag);
-						Layout layout = layoutManager.loadLayout(oldTag);
 
-						tabManager.remove(oldTag); // remove the icon
-						layoutManager.removeLayout(oldTag); // remove the layout
-
+						tabManager.remove(oldTag); // remove the icon/layout of the old tag
 						tagTab.setTag(newTag);
-
 						tabManager.add(tagTab);
 						tabManager.save();
-
-						if (activeTag.equals(oldTag))
-						{
-							activeTag = newTag;
-						}
-
-						if (layout != null)
-						{
-							Layout newLayout = new Layout(newTag, layout.getLayout());
-							layoutManager.saveLayout(newLayout);
-						}
 
 						tagManager.renameTag(oldTag, newTag); // rename tag on items
 
@@ -1106,11 +1070,12 @@ public class TabInterface
 								clientThread.invoke(() ->
 								{
 									tagManager.renameTag(oldTag, newTag);
+									final String activeTag = activeTab != null ? activeTab.getTag() : "";
 									deleteTab(oldTag);
 
-									if (oldTag.equals(activeTag))
+									if (activeTag.equals(oldTag))
 									{
-										plugin.openBankTag(newTag);
+										openNamedTag(newTag, true);
 									}
 									else
 									{
@@ -1159,13 +1124,25 @@ public class TabInterface
 		layoutTabs();
 	}
 
-	public void openTag(String tag, Layout layout, int options, boolean relayout)
+	private void openNamedTag(String name, boolean relayout)
 	{
-		activeTag = tag;
-		activeLayout = layout;
-		activeOptions = options;
-		tagTabActive = TAGTABS.equals(tag);
-		config.tab(tag);
+		activeTab = tabManager.find(name);
+		tagTabActive = TAB_MENU_KEY.equals(name);
+		plugin.open(activeTab);
+		config.tab(name);
+
+		if (relayout)
+		{
+			bankSearch.reset(true);
+		}
+	}
+
+	private void openTag(TagTab tab, boolean relayout)
+	{
+		activeTab = tab;
+		tagTabActive = tab != null && TAB_MENU_KEY.equals(tab.getTag());
+		plugin.open(activeTab);
+		config.tab(tab != null ? tab.getTag() : "");
 
 		if (relayout)
 		{
@@ -1175,11 +1152,9 @@ public class TabInterface
 
 	public void closeTag(boolean relayout)
 	{
-		activeTag = null;
-		activeLayout = null;
-		activeOptions = 0;
+		activeTab = null;
 		tagTabActive = false;
-		plugin.openTag(null, null);
+		plugin.open(null);
 		config.tab("");
 
 		if (relayout)
@@ -1190,9 +1165,9 @@ public class TabInterface
 
 	public void reloadActiveTab()
 	{
-		if (activeTag != null)
+		if (activeTab != null)
 		{
-			plugin.openBankTag(activeTag);
+			bankSearch.reset(true);
 		}
 	}
 
@@ -1260,7 +1235,7 @@ public class TabInterface
 		for (TagTab tab : tabs)
 		{
 			Widget background = createGraphic(parent, ColorUtil.wrapWithColorTag(tab.getTag(), HILIGHT_COLOR),
-				(tab.getTag().equals(activeTag) ? TabSprites.TAB_BACKGROUND_ACTIVE : TabSprites.TAB_BACKGROUND).getSpriteId(),
+				(activeTab == tab ? TabSprites.TAB_BACKGROUND_ACTIVE : TabSprites.TAB_BACKGROUND).getSpriteId(),
 				-1, TAB_WIDTH, TAB_HEIGHT, MARGIN, -1);
 			addTabActions(tab, background);
 
@@ -1295,9 +1270,7 @@ public class TabInterface
 		int y = scrollComponent.getOriginalY();
 		y += MARGIN;
 
-		for (int i = tabScrollOffset;
-			i < tabScrollOffset + tabCount && i * 2 + 1 < children.length - TAGTAB_CHILD_OFFSET && children[TAGTAB_CHILD_OFFSET + i * 2] != null;
-			++i)
+		for (int i = tabScrollOffset; i < tabScrollOffset + tabCount && i * 2 + 1 < children.length - TAGTAB_CHILD_OFFSET; ++i)
 		{
 			Widget background = children[TAGTAB_CHILD_OFFSET + i * 2];
 			background.setOriginalY(y);

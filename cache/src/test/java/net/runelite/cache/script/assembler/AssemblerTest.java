@@ -26,7 +26,6 @@ package net.runelite.cache.script.assembler;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.script.Instructions;
 import net.runelite.cache.script.disassembler.Disassembler;
@@ -55,8 +54,7 @@ public class AssemblerTest
 		{
 			"91.rs2asm",
 			"681.rs2asm",
-			"Unicode.rs2asm",
-			"symbol.rs2asm"
+			"Unicode.rs2asm"
 		};
 	}
 
@@ -69,12 +67,11 @@ public class AssemblerTest
 		Instructions instructions = new Instructions();
 		instructions.init();
 
-		Map<String, Object> symbols = Map.of("symtest", 42);
-		Assembler assembler = new Assembler(instructions, symbols);
+		Assembler assembler = new Assembler(instructions);
 		ScriptDefinition script = assembler.assemble(in);
 
 		// compare with disassembler
-		Disassembler disassembler = new Disassembler(symbols);
+		Disassembler disassembler = new Disassembler();
 		String out = disassembler.disassemble(script);
 
 		in = AssemblerTest.class.getResourceAsStream(this.script);

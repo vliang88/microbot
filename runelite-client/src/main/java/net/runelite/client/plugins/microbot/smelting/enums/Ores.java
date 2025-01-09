@@ -9,7 +9,6 @@ public enum Ores {
     TIN("tin ore"),
     COPPER("copper ore"),
     CLAY("clay"),
-    BLURITE("blurite ore"),
     IRON("iron ore"),
     SILVER("silver ore"),
     COAL("coal"),

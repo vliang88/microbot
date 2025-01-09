@@ -28,6 +28,12 @@ import java.awt.*;
 public class AutoWoodcuttingPlugin extends Plugin {
     @Inject
     private AutoWoodcuttingConfig config;
+    @Inject
+    private Client client;
+    @Inject
+    private ClientThread clientThread;
+    @Inject
+    Notifier notifier;
 
     @Provides
     AutoWoodcuttingConfig provideConfig(ConfigManager configManager) {
@@ -45,6 +51,11 @@ public class AutoWoodcuttingPlugin extends Plugin {
 
     @Override
     protected void startUp() throws AWTException {
+        Microbot.pauseAllScripts = false;
+        Microbot.setClient(client);
+        Microbot.setClientThread(clientThread);
+        Microbot.setNotifier(notifier);
+        Microbot.setMouse(new VirtualMouse());
         if (overlayManager != null) {
             overlayManager.add(woodcuttingOverlay);
         }
@@ -58,7 +69,7 @@ public class AutoWoodcuttingPlugin extends Plugin {
 
     @Subscribe
     public void onChatMessage(ChatMessage chatMessage) {
-        if (chatMessage.getType() == ChatMessageType.GAMEMESSAGE && chatMessage.getMessage().toLowerCase().contains("you can't light a fire here.")) {
+        if (chatMessage.getType() == ChatMessageType.GAMEMESSAGE && chatMessage.getMessage().contains("you can't light a fire here.")) {
             autoWoodcuttingScript.cannotLightFire = true;
         }
     }

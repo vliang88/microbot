@@ -52,8 +52,8 @@ public interface DevToolsConfig extends Config
 
 	@ConfigItem(
 		keyName = "swingInspectorHotkey",
-		name = "Swing inspector",
-		description = "Hotkey to open the Swing inspector, if available."
+		name = "Swing Inspector",
+		description = "Hotkey to open the Swing inspector, if available"
 	)
 	default Keybind swingInspectorHotkey()
 	{
