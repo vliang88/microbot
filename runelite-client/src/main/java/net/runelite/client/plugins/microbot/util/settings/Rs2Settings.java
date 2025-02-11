@@ -1,7 +1,9 @@
 package net.runelite.client.plugins.microbot.util.settings;
 
 import net.runelite.api.Varbits;
+import net.runelite.api.widgets.ComponentID;
 import net.runelite.client.plugins.microbot.Microbot;
+import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
 import net.runelite.client.plugins.microbot.util.keyboard.Rs2Keyboard;
 import net.runelite.client.plugins.microbot.util.tabs.Rs2Tab;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
@@ -9,7 +11,8 @@ import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 import java.awt.event.KeyEvent;
 
 import static net.runelite.client.plugins.microbot.globval.VarbitIndices.TOGGLE_ROOFS;
-import static net.runelite.client.plugins.microbot.util.Global.*;
+import static net.runelite.client.plugins.microbot.util.Global.sleep;
+import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
 
 public class Rs2Settings {
 
@@ -17,6 +20,19 @@ public class Rs2Settings {
     static final int SETTINGS_INTERFACE = 8781825;
     static final int SETTINGS_SEARCHBAR = 8781834;
     static final int ALL_SETTINGS_BUTTON = 7602208;
+
+    public static boolean openSettings() {
+        boolean isSettingsInterfaceVisible = Rs2Widget.isWidgetVisible(ComponentID.SETTINGS_INIT);
+        if (!isSettingsInterfaceVisible) {
+            if (Rs2Tab.getCurrentTab() != InterfaceTab.SETTINGS) {
+                Rs2Tab.switchToSettingsTab();
+                sleepUntil(() -> Rs2Tab.getCurrentTab() == InterfaceTab.SETTINGS);
+            }
+            Rs2Widget.clickWidget(ALL_SETTINGS_BUTTON);
+            sleepUntil(() -> Rs2Widget.isWidgetVisible(ComponentID.SETTINGS_INIT));
+        }
+        return true;
+    }
 
     public static boolean isDropShiftSettingEnabled() {
         return Microbot.getVarbitValue(DROP_SHIFT_SETTING) == 1;
@@ -83,28 +99,22 @@ public class Rs2Settings {
     }
 
     public static boolean isLevelUpNotificationsEnabled() {
-        return Microbot.getVarbitValue(Varbits.DISABLE_LEVEL_UP_INTERFACE) == 1;
+        return Microbot.getVarbitValue(Varbits.DISABLE_LEVEL_UP_INTERFACE) == 0;
     }
 
     public static boolean disableLevelUpNotifications(boolean closeInterface) {
-        if (!isLevelUpNotificationsEnabled()) {
-            Rs2Tab.switchToSettingsTab();
+        if (!isLevelUpNotificationsEnabled()) return true;
+        if (!openSettings()) return false;
 
-            boolean isSettingsInterfaceVisible = Rs2Widget.isWidgetVisible(SETTINGS_INTERFACE);
-            if (!isSettingsInterfaceVisible) {
-                Rs2Widget.clickWidget(ALL_SETTINGS_BUTTON);
-                return false;
-            }
-
-            Rs2Widget.clickWidget(SETTINGS_SEARCHBAR);
-            Rs2Keyboard.typeString("level-");
-            sleep(600);
-            Rs2Widget.clickWidget("Disable level-up interface");
-            sleep(600);
-            if (closeInterface) {
-                Rs2Keyboard.keyPress(KeyEvent.VK_ESCAPE);
-                Rs2Tab.switchToInventoryTab();
-            }
+        Rs2Widget.clickWidget(SETTINGS_SEARCHBAR);
+        Rs2Keyboard.typeString("level-");
+        Rs2Widget.sleepUntilHasWidget("Disable level-up interface");
+        Rs2Widget.clickWidget("Disable level-up interface");
+        sleepUntil(() -> !isLevelUpNotificationsEnabled());
+        
+        if (closeInterface) {
+            Rs2Keyboard.keyPress(KeyEvent.VK_ESCAPE);
+            Rs2Tab.switchToInventoryTab();
         }
         return isLevelUpNotificationsEnabled();
     }
@@ -136,6 +146,7 @@ public class Rs2Settings {
     /**
      * When casting alchemy spells on items in your inventory
      * if the item is worth more than this value, a warning will be shown
+     *
      * @return
      */
     public static int getMinimumItemValueAlchemyWarning() {

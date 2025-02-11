@@ -2,7 +2,6 @@ package net.runelite.client.plugins.microbot.util.widget;
 
 import net.runelite.api.MenuAction;
 import net.runelite.api.annotations.Component;
-import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.Microbot;
@@ -75,8 +74,10 @@ public class Rs2Widget {
     }
 
     public static boolean isWidgetVisible(@Component int id) {
-        Widget widget = getWidget(id);
-        return !Microbot.getClientThread().runOnClientThread(() -> widget == null || widget.isHidden());
+        return !Microbot.getClientThread().runOnClientThread(() -> {
+            Widget widget = getWidget(id);
+            return widget == null || widget.isHidden();
+        });
     }
 
     public static boolean isWidgetVisible(int widgetId, int childId) {
@@ -121,7 +122,7 @@ public class Rs2Widget {
 
     public static boolean clickWidget(int id) {
         Widget widget = Microbot.getClientThread().runOnClientThread(() -> Microbot.getClient().getWidget(id));
-        if (widget == null) return false;
+        if (widget == null || isHidden(id)) return false;
         Microbot.getMouse().click(widget.getBounds());
         return true;
     }
@@ -330,7 +331,6 @@ public class Rs2Widget {
 
     public static void clickWidgetFast(Widget widget, int param0, int identifier) {
         int param1 = widget.getId();
-        String option = "Select";
         String target = "";
         MenuAction menuAction = MenuAction.CC_OP;
         Microbot.doInvoke(new NewMenuEntry(param0 != -1 ? param0 : widget.getType(), param1, menuAction.getId(), identifier, widget.getItemId(), target), widget.getBounds());
@@ -366,7 +366,7 @@ public class Rs2Widget {
 
     // check if deposit box widget is open
     public static boolean isDepositBoxWidgetOpen() {
-        return isWidgetVisible(ComponentID.DEPOSIT_BOX_INVENTORY_ITEM_CONTAINER);
+        return isWidgetVisible(192, 0);
     }
 
     public static boolean isWildernessInterfaceOpen() {

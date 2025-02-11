@@ -153,7 +153,7 @@ public class Rs2Walker {
                 }
             }
             if (!ShortestPathPlugin.getPathfinder().isDone()) {
-                boolean isDone = sleepUntilTrue(() -> ShortestPathPlugin.getPathfinder().isDone(), 100, 5000);
+                boolean isDone = sleepUntilTrue(() -> ShortestPathPlugin.getPathfinder().isDone(), 100, 10000);
                 if (!isDone) {
                     System.out.println("Pathfinder took to long to calculate path, exiting: 149");
                     setTarget(null);
@@ -219,7 +219,7 @@ public class Rs2Walker {
 
             lastPosition = Rs2Player.getWorldLocation();
 
-            if (Rs2Player.getWorldLocation().distanceTo(target) == 0) {
+            if (Rs2Player.getWorldLocation().distanceTo(target) == 0 || path.size() <= 1) {
                 setTarget(null);
                 return WalkerState.ARRIVED;
             }
@@ -1033,6 +1033,7 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
                             break;
                         }
                     }
+                    
 
                     GameObject gameObject = Rs2GameObject.getGameObjects(transport.getObjectId(), transport.getOrigin()).stream().findFirst().orElse(null);
                     //check game objects
@@ -1062,8 +1063,16 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
                         sleepUntil(() -> !Rs2Player.isAnimating());
                         return sleepUntilTrue(() -> Rs2Player.getWorldLocation().distanceTo(transport.getDestination()) < 10);
                     }
+                    
+                    // check wall objects
+                    List<WallObject> wallObjects = Rs2GameObject.getWallObjects(transport.getObjectId(), transport.getOrigin());
+                    TileObject wallObject = wallObjects.stream().findFirst().orElse(null);
+                    if (wallObject != null && wallObject.getId() == transport.getObjectId()) {
+                        handleObject(transport, wallObject);
+                        sleepUntil(() -> !Rs2Player.isAnimating());
+                        return sleepUntilTrue(() -> Rs2Player.getWorldLocation().distanceTo(transport.getDestination()) < 10);
+                    }
                 }
-
             }
         }
         return false;
@@ -1136,6 +1145,14 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
             }
             return true;
         }
+        
+        // Handle Brimhaven Dungeon Entrance
+        if (tileObject.getId() == 20877) {
+            Rs2Dialogue.sleepUntilHasQuestion("Pay 875 coins to enter?");
+            Rs2Dialogue.clickOption("Yes");
+            sleepUntil(() -> Rs2Player.getWorldLocation().equals(transport.getDestination()));
+            return true;
+        }
         return false;
     }
     
@@ -1203,7 +1220,7 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
         List<String> locationKeyWords = Arrays.asList("farm", "monastery", "lletya", "prifddinas", "rellekka", "waterbirth island", "neitiznot", "jatiszo",
                 "ver sinhaza", "darkmeyer", "slepe", "troll stronghold", "weiss", "ecto", "burgh", "duradel", "gem mine", "nardah", "kalphite cave",
                 "kourend woodland", "mount karuulm", "outside", "fishing guild", "otto's grotto", "stronghold slayer cave", "slayer tower", "fremennik", "tarn's lair", "dark beasts");
-        List<String> genericKeyWords = Arrays.asList("invoke", "empty", "consume", "rub", "break", "teleport", "reminisce", "signal", "play");
+        List<String> genericKeyWords = Arrays.asList("invoke", "empty", "consume", "teleport", "rub", "break", "reminisce", "signal", "play");
 
         boolean hasMultipleDestination = transport.getDisplayInfo().contains(":");
         String destination = hasMultipleDestination
@@ -1227,7 +1244,13 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
 
             itemAction = Arrays.stream(rs2Item.getInventoryActions())
                     .filter(action -> action != null && genericKeyWords.stream().anyMatch(keyword -> action.toLowerCase().contains(keyword.toLowerCase())))
-                    .findFirst()
+                    .min(Comparator.comparingInt(action ->
+                            genericKeyWords.stream()
+                                    .filter(keyword -> action.toLowerCase().contains(keyword.toLowerCase()))
+                                    .mapToInt(genericKeyWords::indexOf)
+                                    .findFirst()
+                                    .orElse(Integer.MAX_VALUE)
+                    ))
                     .orElse(null);
         }
 
@@ -1245,9 +1268,7 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
                 Rs2Dialogue.clickOption("Okay, teleport to level");
             }
             
-            if (itemAction.equalsIgnoreCase("rub") && transport.getDisplayInfo().toLowerCase().contains("slayer ring")) {
-                Rs2Dialogue.sleepUntilSelectAnOption();
-                Rs2Dialogue.clickOption("teleport");
+            if (itemAction.equalsIgnoreCase("teleport") && transport.getDisplayInfo().toLowerCase().contains("slayer ring")) {
                 Rs2Dialogue.sleepUntilSelectAnOption();
                 Rs2Dialogue.clickOption(destination);
             }
@@ -1445,7 +1466,13 @@ public static List<WorldPoint> getWalkPath(WorldPoint target) {
 
         if (Rs2Npc.canWalkTo(renu, 20) && Rs2Npc.interact(renu, "travel")) {
             Rs2Player.waitForWalking();
-            sleepUntil(() -> Rs2Widget.isWidgetVisible(varlamoreMapParentID, 2));
+            boolean isVarlamoreMapVisible = sleepUntilTrue(() -> Rs2Widget.isWidgetVisible(varlamoreMapParentID, 2), 100, 10000);
+            
+            if (!isVarlamoreMapVisible) {
+                Microbot.log("Varlamore Map Widget not visable within timeout");
+                return false;
+            }
+            
             List<Widget> dynamicWidgetChildren = Arrays.stream(Rs2Widget.getWidget(varlamoreMapParentID, 15).getDynamicChildren())
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());

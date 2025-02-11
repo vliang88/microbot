@@ -40,7 +40,6 @@ import javax.inject.Inject;
 import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @PluginDescriptor(
         name = PluginDescriptor.Default + "Microbot",
@@ -91,7 +90,6 @@ public class MicrobotPlugin extends Plugin {
     private PouchScript pouchScript;
     @Inject
     private PouchOverlay pouchOverlay;
-    private volatile AtomicInteger ticks = new AtomicInteger(0);
 
     @Override
     protected void startUp() throws AWTException {
@@ -151,8 +149,10 @@ public class MicrobotPlugin extends Plugin {
     @Subscribe
     public void onGameStateChanged(GameStateChanged gameStateChanged) {
         if (gameStateChanged.getGameState() == GameState.HOPPING || gameStateChanged.getGameState() == GameState.LOGIN_SCREEN || gameStateChanged.getGameState() == GameState.CONNECTION_LOST) {
-            if (Rs2Bank.bankItems != null)
+            if (Rs2Bank.bankItems != null) {
                 Rs2Bank.bankItems.clear();
+            }
+            Microbot.loggedIn = false;
         }
     }
 
@@ -248,27 +248,27 @@ public class MicrobotPlugin extends Plugin {
             }
         }
     }
-    
+
     @Subscribe
-    public void onGameTick(GameTick event) {
-        if (client.getLocalPlayer().isInteracting()) {
-            Actor interactingActor = client.getLocalPlayer().getInteracting();
-            if (interactingActor instanceof Player) {
-                if (ticks.get() == 2) {
-                    ticks.set(0);
-                    Rs2Player.updateCombatTime();
-                    Rs2Player.lastInteractWasPlayer = true;
-                } else {
-                    ticks.incrementAndGet();
-                }
-            } else if (interactingActor instanceof NPC) {
-                if (ticks.get() == 2) {
-                    ticks.set(0);
-                    if (Rs2Player.lastInteractWasPlayer) Rs2Player.lastInteractWasPlayer = false;
-                    Rs2Player.updateCombatTime();
-                } else {
-                    ticks.incrementAndGet();
-                }
+    public void onHitsplatApplied(HitsplatApplied event) {
+        // Case 1: Hitsplat applied to the local player (indicates someone or something is attacking you)
+        if (event.getActor().equals(Rs2Player.getLocalPlayer())) {
+            if (!event.getHitsplat().isOthers()) {
+                Rs2Player.updateCombatTime();
+            }
+        }
+
+        // Case 2: Hitsplat is applied to another player (indicates you are attacking another player)
+        else if (event.getActor() instanceof Player) {
+            if (event.getHitsplat().isMine()) {
+                Rs2Player.updateCombatTime();
+            }
+        }
+
+        // Case 3: Hitsplat is applied to an NPC (indicates you are attacking an NPC)
+        else if (event.getActor() instanceof NPC) {
+            if (event.getHitsplat().isMine()) {
+                Rs2Player.updateCombatTime();
             }
         }
     }

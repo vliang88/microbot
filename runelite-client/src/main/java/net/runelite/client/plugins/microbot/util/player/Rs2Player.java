@@ -54,9 +54,12 @@ public class Rs2Player {
     public static Instant lastAnimationTime = null;
     private static final long COMBAT_TIMEOUT_MS = 10000;
     private static long lastCombatTime = 0;
-    public static boolean lastInteractWasPlayer = false;
     @Getter
     public static int lastAnimationID = AnimationID.IDLE;
+
+    public static boolean hasPrayerRegenerationActive() {
+        return Microbot.getVarbitValue(Varbits.BUFF_PRAYER_REGENERATION) > 0;
+    }
 
     public static boolean hasAntiFireActive() {
         return antiFireTime > 0 || hasSuperAntiFireActive();
@@ -527,16 +530,21 @@ public class Rs2Player {
 
     public static boolean useFood() {
         List<Rs2Item> foods = Rs2Inventory.getInventoryFood();
-        if (!foods.isEmpty()) {
-            if (foods.get(0).getName().toLowerCase().contains("jug of wine")) {
-                return Rs2Inventory.interact(foods.get(0), "drink");
-            } else if (foods.get(0).getName().toLowerCase().contains("blighted") && Microbot.getVarbitValue(Varbits.IN_WILDERNESS) == 1) {
-                return Rs2Inventory.interact(foods.get(0), "eat");
-            } else if (!foods.get(0).getName().toLowerCase().contains("blighted")) {
-                return Rs2Inventory.interact(foods.get(0), "eat");
-            }
+        if (foods.isEmpty()) return false;
+
+        boolean inWilderness = Microbot.getVarbitValue(Varbits.IN_WILDERNESS) == 1;
+
+        Rs2Item foodToUse = foods.stream()
+                .filter(rs2Item -> !rs2Item.isNoted())
+                .filter(rs2Item -> inWilderness && rs2Item.getName().toLowerCase().contains("blighted"))
+                .findFirst()
+                .orElse(foods.get(0));
+
+        if (foodToUse.getName().toLowerCase().contains("jug of wine")) {
+            return Rs2Inventory.interact(foodToUse, "drink");
         }
-        return false;
+
+        return Rs2Inventory.interact(foodToUse, "eat");
     }
 
     /**
@@ -712,14 +720,19 @@ public class Rs2Player {
     }
 
     /**
+     * Get the local player
+     * @return player
+     */
+    public static Player getLocalPlayer() {
+        return Microbot.getClient().getLocalPlayer();
+    }
+
+    /**
      * Checks if the player is in combat based on recent activity.
      *
      * @return True if the player is in combat, false otherwise.
      */
     public static boolean isInCombat() {
-        if (lastInteractWasPlayer) {
-            return (System.currentTimeMillis() - lastCombatTime < COMBAT_TIMEOUT_MS) && Microbot.getVarbitPlayerValue(1075) != -1;
-        }
         return System.currentTimeMillis() - lastCombatTime < COMBAT_TIMEOUT_MS;
     }
 
@@ -820,25 +833,29 @@ public class Rs2Player {
 
     /**
      * Drink prayer potion at prayer point level
-     *
+     * PrayerRenegrationPotion gets priority over prayer/restore potions
      * @param prayerPoints
-     * @return
+     * @return true if prayer potion, prayer regen potion or blighted super restore was used, otherwise false.
      */
     public static boolean drinkPrayerPotionAt(int prayerPoints) {
         // Check if current prayer level is below or equal to the threshold
-        if (Microbot.getClient().getBoostedSkillLevel(Skill.PRAYER) > prayerPoints) {
-            return false;
+        if (getBoostedSkillLevel(Skill.PRAYER) > prayerPoints) return false;
+
+        boolean inWilderness = Microbot.getVarbitValue(Varbits.IN_WILDERNESS) == 1;
+        boolean isInPVPWorld = Microbot.getClient().getWorldType().contains(WorldType.PVP);
+
+        // Prioritize Prayer Regeneration Potion if effect is not active
+        if (!Rs2Player.hasPrayerRegenerationActive() && usePotion(Rs2Potion.getPrayerRegenerationPotion())) return true;
+
+        // If in Wilderness, prioritize Blighted Super Restore
+        if (inWilderness || isInPVPWorld)  {
+            if (hasPotion("blighted super restore")) {
+                return usePotion("blighted super restore");
+            }
         }
 
-        // Attempt to drink a prayer potion
-        if (usePotion(Rs2Potion.getPrayerPotionsVariants().toArray(new String[0]))){
-            return true;
-        }
-
-        // If in wilderness, attempt to drink a blighted super restore potion
-        if (Microbot.getVarbitValue(Varbits.IN_WILDERNESS) == 1) {
-            return usePotion(ItemID.BLIGHTED_SUPER_RESTORE1, ItemID.BLIGHTED_SUPER_RESTORE2, ItemID.BLIGHTED_SUPER_RESTORE3, ItemID.BLIGHTED_SUPER_RESTORE4);
-        }
+        // Use a standard prayer potion from the available variants
+        if (usePotion(Rs2Potion.getPrayerPotionsVariants().toArray(new String[0]))) return true;
 
         return false;
     }
@@ -965,13 +982,27 @@ public class Rs2Player {
      * @return true if an item was found and interacted with; false otherwise.
      */
     private static boolean usePotion(Integer ...itemIds) {
-        if (Rs2Inventory.contains(itemIds)) {
-            Rs2Item potion = Rs2Inventory.get(itemIds);
-            if (potion != null) {
-                return Rs2Inventory.interact(potion, "drink");
-            }
-        }
-        return false;
+        Rs2Item potion = Rs2Inventory.get(item ->
+                !item.isNoted() && Arrays.stream(itemIds).anyMatch(id -> id == item.getId())
+        );
+        
+        if (potion == null) return false;
+        
+        return Rs2Inventory.interact(potion, "drink");
+    }
+
+    /**
+     * Checks for the presence of any item in the provided IDs within the inventory.
+     *
+     * @param itemIds Array of item IDs to check in the inventory.
+     * @return true if an item matching the IDs exists; false otherwise.
+     */
+    private static boolean hasPotion(Integer... itemIds) {
+        Rs2Item potion = Rs2Inventory.get(item ->
+                !item.isNoted() && Arrays.stream(itemIds).anyMatch(id -> id == item.getId())
+        );
+        
+        return potion != null;
     }
 
     /**
@@ -981,16 +1012,28 @@ public class Rs2Player {
      * @return true if an item was found and interacted with; false otherwise.
      */
     private static boolean usePotion(String... itemNames) {
-        if (Rs2Inventory.contains(x -> Arrays.stream(itemNames).anyMatch(name -> x.name.contains(name)))) {
-            Rs2Item potion = Rs2Inventory.get(Arrays.stream(itemNames).collect(Collectors.toList()),false);
-            if (potion != null) {
-                return Rs2Inventory.interact(potion, "drink");
-            }
-        }
-        return false;
+        Rs2Item potion = Rs2Inventory.get(item ->
+                !item.isNoted() && Arrays.stream(itemNames).anyMatch(name -> item.getName().toLowerCase().contains(name.toLowerCase()))
+        );
+
+        if (potion == null) return false;
+
+        return Rs2Inventory.interact(potion, "drink");
     }
-
-
+    
+    /**
+     * Checks for the presence of any item in the provided names within the inventory.
+     *
+     * @param itemNames Array of item names to check in the inventory.
+     * @return true if an item matching the names exists; false otherwise.
+     */
+    private static boolean hasPotion(String... itemNames) {
+        Rs2Item potion = Rs2Inventory.get(item ->
+                !item.isNoted() && Arrays.stream(itemNames).anyMatch(name -> item.getName().toLowerCase().contains(name.toLowerCase()))
+        );
+        
+        return potion != null;
+    }
 
     /**
      * Checks if the player has prayer points remaining
@@ -1202,7 +1245,7 @@ public class Rs2Player {
     }
 
     public static boolean isStunned() {
-        return Microbot.getClient().getLocalPlayer().hasSpotAnim(245);
+        return hasSpotAnimation(245);
     }
 
     /**
